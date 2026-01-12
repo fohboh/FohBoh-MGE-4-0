@@ -1,49 +1,24 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
 const port = process.env.PORT || 8080;
 
-const server = http.createServer((req, res) => {
-  let filePath = '.' + req.url;
-  if (filePath === './') {
-    filePath = './index.html';
-  }
-
-  const extname = String(path.extname(filePath)).toLowerCase();
-  const mimeTypes = {
-    '.html': 'text/html',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.tsx': 'text/plain',
-    '.ts': 'text/plain'
-  };
-
-  const contentType = mimeTypes[extname] || 'application/octet-stream';
-
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        fs.readFile('./index.html', (err, indexContent) => {
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(indexContent, 'utf-8');
-        });
-      } else {
-        res.writeHead(500);
-        res.end('Server Error: ' + error.code);
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  });
+// Set custom MIME types before serving static files
+express.static.mime.define({
+  'application/javascript': ['tsx', 'ts', 'js']
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on port ${port}`);
+// Serve static files from current directory
+app.use(express.static(__dirname));
+
+// Catch-all route for SPA behavior
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`FohBoh MGE Server listening on port ${port} at 0.0.0.0`);
 });
