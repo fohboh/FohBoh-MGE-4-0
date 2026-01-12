@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -344,7 +343,7 @@ const App: React.FC = () => {
 
   if (isAuthenticating) return null;
 
-  // Pipeline stages for the interactive landing page section
+  // Pipeline stages for interactive content
   const pipelineStages = [
     { stage: '01', title: 'Truth Capture', desc: 'Immutable ingestion of raw transactional data.' },
     { stage: '02', title: 'Semantic Alignment', desc: 'Normalizing temporal drift and mapping vendor fields.' },
@@ -421,7 +420,6 @@ const App: React.FC = () => {
 
         {/* Major Boxes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          {/* Data Integrity Protocol */}
           <div 
             onClick={() => { setShowLanding(false); setOnboardingStep(1); }}
             className="md:col-span-3 bg-white border border-slate-100 rounded-[2.5rem] p-12 shadow-sm hover:shadow-xl transition-all duration-500 group cursor-pointer relative overflow-hidden"
@@ -434,7 +432,6 @@ const App: React.FC = () => {
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-slate-50 rounded-full -mb-24 -mr-24 opacity-50 transition-transform group-hover:scale-125 duration-700" />
           </div>
 
-          {/* Revenue Recovery */}
           <div 
             onClick={() => { setShowLanding(false); setOnboardingStep(1); }}
             className="md:col-span-2 bg-[#2563EB] text-white rounded-[2.5rem] p-12 shadow-2xl hover:shadow-indigo-200 transition-all duration-500 group cursor-pointer relative flex flex-col"
@@ -449,7 +446,6 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* KPI Certification */}
           <div 
             onClick={() => { setShowLanding(false); setOnboardingStep(1); }}
             className="md:col-span-2 bg-[#0F172A] text-white rounded-[2.5rem] p-12 shadow-2xl hover:scale-[1.02] transition-all duration-500 group cursor-pointer"
@@ -464,12 +460,11 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Technical Pipeline */}
+          {/* Technical Pipeline with interactive hover reveal */}
           <div className="md:col-span-3 bg-white border border-slate-100 rounded-[2.5rem] p-12 shadow-sm flex items-center justify-between group overflow-hidden">
             <div className="max-w-md w-full">
               <h3 className="text-2xl font-black mb-4 tracking-tight">Technical Pipeline Lifecycle</h3>
               
-              {/* Dynamic Content revealed on hover */}
               <div className="min-h-[100px] mb-8">
                 {hoveredPipelineStage !== null ? (
                   <div className="animate-in fade-in slide-in-from-left-2 duration-300">
@@ -526,7 +521,6 @@ const App: React.FC = () => {
 
   const renderHelp = () => (
     <div className="max-w-5xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700">
-      {/* Dark Header */}
       <div className="bg-[#0F172A] p-8 flex justify-between items-center text-white">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black">F</div>
@@ -542,13 +536,11 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Section */}
       <div className="p-16 border-b border-slate-100">
         <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-tight max-w-3xl">
           The Kitchen vs. The Boardroom: <br />
           <span className="text-[#3B82F6]">Why Your Restaurant AI Needs a Single Source of Truth</span>
         </h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
           <div className="space-y-6">
             <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-4 mb-4">The Danger of Assuming You Are Right</h4>
@@ -565,7 +557,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Solution Section */}
       <div className="p-16 bg-[#F8FAFC]">
         <div className="bg-[#0F172A] text-white p-12 rounded-[2.5rem] flex items-center justify-between shadow-xl">
           <div className="max-w-xl">
@@ -585,7 +576,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Scoring Section */}
       <div className="p-16 grid grid-cols-1 md:grid-cols-2 gap-20">
         <div>
           <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-8">Demystifying "Certified Data" & 0-100 Score</h4>
@@ -612,7 +602,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Why Section */}
       <div className="p-16 bg-slate-50">
         <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-2 border-slate-900 pl-4 mb-8">Why Does This Matter?</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
@@ -625,7 +614,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Pipeline Section */}
       <div className="p-16 pb-24">
         <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-12">Technical Pipeline Lifecycle</h4>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -729,23 +717,16 @@ const App: React.FC = () => {
         }
       `}</style>
 
-      {/* Header Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-hidden">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Executive Summary</h2>
           <p className="text-slate-500 text-sm">Audit Period: {dateRange.start} -- {dateRange.end}</p>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-          >
+          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
             <Printer size={16} /> Print Report / PDF
           </button>
-          <button 
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-shadow shadow-md shadow-indigo-100"
-          >
+          <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-shadow shadow-md shadow-indigo-100">
             <Download size={16} /> Download CSV Ledger
           </button>
         </div>
@@ -761,7 +742,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm print:border-slate-300">
           <div className="flex items-center gap-4 mb-4">
@@ -811,7 +791,6 @@ const App: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Discrepancy Chart */}
         <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm h-[420px] print:h-[350px]">
           <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-8 uppercase tracking-widest text-xs">
             <Activity size={16} className="text-indigo-600" /> Variance Analysis Timeline
@@ -836,7 +815,6 @@ const App: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* AI Recommendations */}
         <div className="bg-slate-900 p-8 rounded-2xl text-white shadow-xl border border-slate-800 print:bg-slate-50 print:text-slate-900 print:border-slate-300">
           <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-indigo-400 print:text-indigo-600">
             <BrainCircuit size={20} /> AI Strategy Insights
@@ -855,15 +833,12 @@ const App: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-slate-500 text-center py-12">
-                 <p className="text-sm italic">Run simulation for recommendations.</p>
-              </div>
+              <div className="text-slate-500 text-center py-12 italic text-sm">Run simulation for recommendations.</div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Transactional Ledger */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print:border-slate-300 page-break">
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <h3 className="font-bold text-slate-800 flex items-center gap-2 uppercase tracking-widest text-xs">
@@ -874,7 +849,7 @@ const App: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest print:bg-slate-100 print:text-slate-700">
+              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <th className="px-6 py-4">Metric ID</th>
                 <th className="px-6 py-4">Module</th>
                 <th className="px-6 py-4">Amount</th>
@@ -885,20 +860,16 @@ const App: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dashboard.recentMetrics.map((m) => (
-                <tr key={m.metricId} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 font-bold">{m.metricId}</td>
+                <tr key={m.metricId} className="hover:bg-slate-50 transition-colors text-xs">
+                  <td className="px-6 py-4 font-mono text-indigo-600 font-bold">{m.metricId}</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 rounded text-[9px] font-black bg-slate-100 text-slate-500 uppercase">
                       {m.module.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-black text-slate-900">${m.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-bold text-slate-600">{m.trustScore}%</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[10px] font-semibold text-slate-500">{new Date(m.calculationDate).toLocaleString()}</td>
+                  <td className="px-6 py-4 font-black">${m.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 font-bold">{m.trustScore}%</td>
+                  <td className="px-6 py-4 text-slate-500">{new Date(m.calculationDate).toLocaleString()}</td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${m.isCertified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
@@ -908,11 +879,6 @@ const App: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {dashboard.recentMetrics.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400 italic text-sm">No transaction records found for this period.</td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
@@ -921,16 +887,13 @@ const App: React.FC = () => {
   );
 
   const renderModuleForm = (module: ModuleType) => {
-    let title = "";
-    let icon = <Database />;
-    
+    let title = ""; let icon = <Database />;
     switch (module) {
       case ModuleType.REVENUE_RECOVERY: title = "Revenue Recovery"; icon = <DollarSign />; break;
       case ModuleType.DELIVERY_RECON: title = "Delivery Reconciliation"; icon = <Truck />; break;
       case ModuleType.CC_AUDIT: title = "Credit Card Audit"; icon = <CreditCard />; break;
       case ModuleType.OPERATING_COSTS: title = "Food Cost Intelligence"; icon = <ChefHat />; break;
     }
-
     return (
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -943,12 +906,10 @@ const App: React.FC = () => {
                 <p className="text-slate-500 mt-1 text-sm">Direct truth-table entry for specialized simulation vectors.</p>
               </div>
             </div>
-
             <form className="space-y-6" onSubmit={e => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              const inputData = Object.fromEntries(formData.entries());
-              runSimulation(module, inputData);
+              runSimulation(module, Object.fromEntries(formData.entries()));
               setActiveTab('dashboard');
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -968,7 +929,6 @@ const App: React.FC = () => {
                     </div>
                   </>
                 )}
-
                 {module === ModuleType.DELIVERY_RECON && (
                   <>
                     <div className="space-y-2">
@@ -989,7 +949,6 @@ const App: React.FC = () => {
                     </div>
                   </>
                 )}
-
                 {module === ModuleType.CC_AUDIT && (
                   <>
                     <div className="space-y-2">
@@ -1002,11 +961,10 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agreed Interchange Rate (%)</label>
-                      <input name="interchange_rate" defaultValue="2.5%" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="2.5%" />
+                      <input name="interchange_rate" defaultValue="2.5%" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" />
                     </div>
                   </>
                 )}
-
                 {module === ModuleType.OPERATING_COSTS && (
                   <>
                     <div className="space-y-2">
@@ -1028,40 +986,24 @@ const App: React.FC = () => {
                   </>
                 )}
               </div>
-              
               <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
                 Seal Calculation & Update Dashboard
               </button>
             </form>
           </div>
-
-          <div className="bg-slate-50 p-10 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center space-y-6 hover:border-indigo-400 transition-colors h-full">
-            <div className="p-5 bg-white rounded-2xl shadow-sm text-indigo-600 group-hover:scale-110 transition-transform duration-300">
-              <Upload size={40} />
-            </div>
+          <div className="bg-slate-50 p-10 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center space-y-6 h-full">
+            <Upload size={40} className="text-indigo-600" />
             <div>
               <h3 className="text-xl font-bold text-slate-800">Batch Ledger Ingestion</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto mt-2 leading-relaxed font-semibold">Upload multiple period audit points using our standardized Truth-Table CSV schemas.</p>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto mt-2 font-semibold">Upload multiple period audit points using standard CSV schemas.</p>
             </div>
-            
             <div className="flex flex-col gap-3 w-full max-w-xs">
-              <label className="cursor-pointer bg-white border border-slate-200 hover:border-indigo-300 px-6 py-4 rounded-2xl font-black text-xs text-slate-600 shadow-sm transition-all flex items-center justify-center gap-3 uppercase tracking-widest hover:text-indigo-600">
-                <FileSpreadsheet size={18} />
-                {csvUploadLoading ? 'Ingesting Schema...' : 'Select Ingestion CSV'}
-                <input 
-                  type="file" 
-                  accept=".csv" 
-                  className="hidden" 
-                  onChange={(e) => handleCSVUpload(e, module)} 
-                  disabled={csvUploadLoading}
-                />
+              <label className="cursor-pointer bg-white border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs text-slate-600 shadow-sm transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
+                <FileSpreadsheet size={18} /> {csvUploadLoading ? 'Ingesting...' : 'Select CSV'}
+                <input type="file" accept=".csv" className="hidden" onChange={(e) => handleCSVUpload(e, module)} disabled={csvUploadLoading} />
               </label>
-              
-              <button 
-                onClick={() => downloadTemplate(module)}
-                className="text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity"
-              >
-                <Download size={12} /> Get {module.toUpperCase()} Schema Template
+              <button onClick={() => downloadTemplate(module)} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline flex items-center justify-center gap-1.5 opacity-60">
+                <Download size={12} /> Get Template
               </button>
             </div>
           </div>
@@ -1079,16 +1021,16 @@ const App: React.FC = () => {
       case 'audit': return renderModuleForm(ModuleType.CC_AUDIT);
       case 'registry':
         return (
-          <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 mb-8 flex items-center gap-3 uppercase tracking-tighter">
               <Database size={24} className="text-indigo-600" /> KPI Governance Registry
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {formulas.map(f => (
                 <div key={f.formulaId} className="p-6 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors group relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 -mr-8 -mt-8 rounded-full group-hover:scale-150 transition-transform" />
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 -mr-8 -mt-8 rounded-full" />
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-tighter">{f.module.replace('_', ' ')}</span>
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase">{f.module.replace('_', ' ')}</span>
                     <span className="text-[10px] font-bold text-slate-400">VER {f.version}</span>
                   </div>
                   <h4 className="font-bold text-slate-900 text-sm mb-1">{f.name}</h4>
@@ -1101,29 +1043,20 @@ const App: React.FC = () => {
         );
       case 'vault':
         return (
-          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in">
              <div className={`p-16 rounded-[3rem] border-2 transition-all flex flex-col items-center text-center space-y-8 ${isVaultLocked ? 'bg-emerald-50 border-emerald-200 shadow-emerald-100' : 'bg-amber-50 border-amber-200 shadow-amber-100'} shadow-2xl`}>
                 <div className="p-6 bg-white rounded-[2rem] shadow-sm">
                   {isVaultLocked ? <Lock size={64} className="text-emerald-600" /> : <Unlock size={64} className="text-amber-600" />}
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">
-                    Certified Truth Vault
-                  </h2>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
                   <p className="text-slate-600 mt-4 max-w-md font-medium text-sm leading-relaxed">
                     {isVaultLocked 
                       ? "The period vault is cryptographically sealed. Audit trails are now immutable for regulatory review and AI ingestion."
                       : "The period vault is open. Formulas can be modified for the current audit window. Lock to generate the immutable hash."}
                   </p>
                 </div>
-                <button 
-                  onClick={() => setIsVaultLocked(!isVaultLocked)}
-                  className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 ${
-                    isVaultLocked 
-                    ? 'bg-rose-600 text-white hover:bg-rose-700' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
-                >
+                <button onClick={() => setIsVaultLocked(!isVaultLocked)} className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${isVaultLocked ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white'}`}>
                   {isVaultLocked ? 'Release Audit Seal' : 'Lock & Seal Period Vault'}
                 </button>
                 {isVaultLocked && (
@@ -1136,15 +1069,15 @@ const App: React.FC = () => {
         );
       case 'history':
         return (
-          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 shadow-xl">
+          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 text-center animate-in fade-in shadow-xl">
             <div className="p-6 bg-slate-50 rounded-full inline-block mb-6">
               <HistoryIcon size={48} className="text-slate-400" />
             </div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest">System Integrity Log</h2>
-            <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto font-medium">Temporal modifications to the truth-table environment are recorded here for multi-vector verification.</p>
+            <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Temporal modifications recorded here for multi-vector verification.</p>
             <div className="mt-12 max-w-2xl mx-auto space-y-3">
-              {metrics.length > 0 ? metrics.map((m, i) => (
-                <div key={m.metricId} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 text-left shadow-sm hover:border-indigo-200 transition-colors">
+              {metrics.length > 0 ? metrics.map((m) => (
+                <div key={m.metricId} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 text-left shadow-sm">
                   <div className="flex gap-4 items-center">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <div>
@@ -1165,14 +1098,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
-      userName={user?.firstName || ''} 
-      onLogout={handleLogout}
-      dateRange={dateRange}
-      setDateRange={setDateRange}
-    >
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} userName={user?.firstName || ''} onLogout={handleLogout} dateRange={dateRange} setDateRange={setDateRange}>
       {renderContent()}
     </Layout>
   );
