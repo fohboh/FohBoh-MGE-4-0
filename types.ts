@@ -48,6 +48,13 @@ export interface SimulatorUser {
   simulationCount: number;
 }
 
+export interface KPIEnrichment {
+  what: string;
+  why: string;
+  how: string;
+  fix: string;
+}
+
 export interface KPIFormula {
   formulaId: string;
   name: string;
@@ -65,6 +72,7 @@ export interface KPIFormula {
   trustScoreComponents?: Record<string, number>;
   targetRanges?: Record<string, string>;
   validationLogic?: string[];
+  enrichment?: KPIEnrichment;
 }
 
 export interface CertifiedMetric {

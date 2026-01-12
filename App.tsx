@@ -53,7 +53,8 @@ import {
   Clock,
   ThumbsUp,
   Wine,
-  BarChart3
+  BarChart3,
+  Lightbulb
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -188,38 +189,26 @@ const App: React.FC = () => {
       kpiId = 'DR001';
       value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
     } else if (module === ModuleType.OPERATIONS_CERTIFICATION) {
-      // Logic from PDF documentation
       if (opsCertActiveTab === 'food') {
-        kpiId = 'OPS_FOOD_001';
+        kpiId = 'COGS_TOTAL';
         const beg = parseFloat(inputData.V_FOOD_BEGINNING_INVENTORY || 0);
         const purch = parseFloat(inputData.V_FOOD_PURCHASES || 0);
-        const transIn = parseFloat(inputData.V_FOOD_TRANSFERS_IN || 0);
-        const transOut = parseFloat(inputData.V_FOOD_TRANSFERS_OUT || 0);
         const end = parseFloat(inputData.V_FOOD_ENDING_INVENTORY || 0);
-        const emp = parseFloat(inputData.V_FOOD_EMPLOYEE_MEALS || 0);
-        const sales = parseFloat(inputData.V_FOOD_SALES || 1);
-        
-        const foodCost = (beg + purch + transIn - transOut - end - emp);
-        value = (foodCost / sales) * 100;
+        value = (beg + purch - end);
       } else if (opsCertActiveTab === 'bev') {
-        kpiId = 'OPS_BEV_001';
+        kpiId = 'BEVERAGE_COST_PCT';
         const beg = parseFloat(inputData.V_BEV_BEGINNING_INVENTORY || 0);
         const purch = parseFloat(inputData.V_BEV_PURCHASES || 0);
-        const transIn = parseFloat(inputData.V_BEV_TRANSFERS_IN || 0);
-        const transOut = parseFloat(inputData.V_BEV_TRANSFERS_OUT || 0);
         const end = parseFloat(inputData.V_BEV_ENDING_INVENTORY || 0);
         const sales = parseFloat(inputData.V_BEV_SALES || 1);
-        
-        const bevCost = (beg + purch + transIn - transOut - end);
-        value = (bevCost / sales) * 100;
+        value = ((beg + purch - end) / sales) * 100;
       } else {
-        kpiId = 'OPS_PRIME_001';
+        kpiId = 'PRIME_COST_PCT';
         const food = parseFloat(inputData.V_TOTAL_FOOD_COST || 0);
         const bev = parseFloat(inputData.V_TOTAL_BEV_COST || 0);
         const hourly = parseFloat(inputData.V_LABOR_HOURLY_WAGES || 0);
         const salary = parseFloat(inputData.V_LABOR_SALARY_ALLOCATION || 0);
         const sales = parseFloat(inputData.V_NET_SALES || 1);
-        
         value = ((food + bev + hourly + salary) / sales) * 100;
       }
     } else {
@@ -297,25 +286,25 @@ const App: React.FC = () => {
       setIsHelpAuth(true);
       setHelpError('');
     } else {
-      setHelpError('Unauthorized Access. Invalid Credentials.');
+      setHelpError('Access Denied. Ensure you use the authorized Admin Portal key.');
     }
   };
 
   const handleRestorePassword = () => {
     localStorage.setItem('fohboh_help_pass', 'FOHBOHMGE2026');
-    alert('Password restored to default: FOHBOHMGE2026');
     setHelpPasswordInput('FOHBOHMGE2026');
+    alert('Master Key restored to default: FOHBOHMGE2026');
   };
 
   const handleChangePassword = () => {
     if (newPass.length < 4) {
-      alert('Password too short.');
+      alert('Security violation: Key is too short.');
       return;
     }
     localStorage.setItem('fohboh_help_pass', newPass);
     setIsChangingPass(false);
     setNewPass('');
-    alert('Password updated successfully.');
+    alert('Security Update: Admin Portal Key synchronized.');
   };
 
   const renderFaqSection = () => {
@@ -367,27 +356,27 @@ const App: React.FC = () => {
       return (
         <div className="max-w-md mx-auto bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-500">
           <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-xl">
-              <Lock size={32} />
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-xl">
+              <Shield size={32} />
             </div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Gateway</h2>
-            <p className="text-slate-400 text-xs font-semibold mt-2">Restricted Logic Documentation Portal</p>
+            <p className="text-slate-400 text-xs font-semibold mt-2">Authenticated Logic Core Access</p>
           </div>
           <form onSubmit={handleHelpLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Portal Access Key</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Portal Master Key</label>
               <input 
                 type="password" 
                 value={helpPasswordInput}
                 onChange={(e) => setHelpPasswordInput(e.target.value)}
-                placeholder="••••••••••••" 
-                className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none" 
+                placeholder="FOHBOHMGE2026" 
+                className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none text-center tracking-widest" 
                 required 
               />
             </div>
             {helpError && <p className="text-rose-500 text-[10px] font-bold uppercase text-center">{helpError}</p>}
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl mt-4 uppercase text-xs tracking-widest transition-all">Authenticate Session</button>
-            <button type="button" onClick={handleRestorePassword} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest pt-4 hover:text-indigo-600 transition-colors">Restore Default Access</button>
+            <button type="submit" className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-xl mt-4 uppercase text-xs tracking-widest transition-all">Authorize Session</button>
+            <button type="button" onClick={handleRestorePassword} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest pt-6 hover:text-indigo-600 transition-colors border-t border-slate-50 mt-6">Restore System Default</button>
           </form>
         </div>
       );
@@ -405,13 +394,13 @@ const App: React.FC = () => {
               onClick={() => setIsChangingPass(!isChangingPass)}
               className="px-6 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
             >
-              <Key size={14} /> Security
+              <Key size={14} /> Security Key
             </button>
             <button 
               onClick={() => setIsHelpAuth(false)}
               className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center gap-2"
             >
-              <LogOut size={14} /> Lock Portal
+              <LogOut size={14} /> Lock Core
             </button>
           </div>
         </div>
@@ -419,7 +408,7 @@ const App: React.FC = () => {
         {isChangingPass && (
           <div className="bg-indigo-50 p-8 rounded-[2rem] border border-indigo-100 flex flex-col md:flex-row items-end gap-6 animate-in slide-in-from-top-4 duration-300">
             <div className="flex-1 space-y-2 w-full">
-              <label className="text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-1">Update Administrative Access Key</label>
+              <label className="text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-1">Configure New Admin Portal Key</label>
               <input 
                 type="password" 
                 value={newPass}
@@ -432,7 +421,7 @@ const App: React.FC = () => {
               onClick={handleChangePassword}
               className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shrink-0"
             >
-              Commit Change
+              Apply Update
             </button>
           </div>
         )}
@@ -529,8 +518,7 @@ const App: React.FC = () => {
       { type: ModuleType.OPERATIONAL_EFFICIENCY, label: "02. Operational & Sales Efficiency" },
       { type: ModuleType.INVENTORY_WASTE, label: "03. Inventory & Waste Management" },
       { type: ModuleType.LABOR_PRODUCTIVITY, label: "04. Labor & Staff Productivity" },
-      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" },
-      { type: ModuleType.OPERATIONS_CERTIFICATION, label: "06. Operations Certification CORE" }
+      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" }
     ];
 
     return (
@@ -544,7 +532,7 @@ const App: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               type="text" 
-              placeholder="Search formulas or rules..." 
+              placeholder="Search 50 formulas or rules..." 
               value={registrySearch}
               onChange={(e) => setRegistrySearch(e.target.value)}
               className="w-full bg-white/5 border border-white/10 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:ring-4 focus:ring-indigo-500/20"
@@ -597,6 +585,35 @@ const App: React.FC = () => {
                         
                         {expandedFormula === f.formulaId && (
                           <div className="pt-8 border-t border-slate-50 space-y-8 animate-in slide-in-from-top-4 duration-300">
+                            {/* Detailed Enrichment Section */}
+                            {f.enrichment && (
+                              <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
+                                  <div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
+                                    <Lightbulb size={14} /> KPI Intelligence Enrichment
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">WHAT</span>
+                                      <p className="text-[11px] text-slate-700 font-bold leading-tight">{f.enrichment.what}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">WHY</span>
+                                      <p className="text-[11px] text-slate-700 font-bold leading-tight">{f.enrichment.why}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">HOW</span>
+                                      <p className="text-[11px] text-slate-700 font-bold leading-tight">{f.enrichment.how}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">FIX</span>
+                                      <p className="text-[11px] text-emerald-600 font-bold leading-tight">{f.enrichment.fix}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {f.governanceRules && (
                               <div className="space-y-4">
                                 <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
@@ -771,29 +788,9 @@ const App: React.FC = () => {
                     <p className="text-[9px] text-slate-400 font-medium">Total food purchases from AP system.</p>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ArrowRight size={12} className="text-blue-500" /> V_FOOD_TRANSFERS_IN</label>
-                    <input name="V_FOOD_TRANSFERS_IN" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
-                    <p className="text-[9px] text-slate-400 font-medium">Transferred from other locations.</p>
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ArrowRight size={12} className="text-rose-500 rotate-180" /> V_FOOD_TRANSFERS_OUT</label>
-                    <input name="V_FOOD_TRANSFERS_OUT" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
-                    <p className="text-[9px] text-slate-400 font-medium">Transferred to other locations.</p>
-                  </div>
-                  <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={12} className="text-amber-500" /> V_FOOD_ENDING_INVENTORY</label>
                     <input name="V_FOOD_ENDING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
                     <p className="text-[9px] text-slate-400 font-medium">Physical count ending inventory.</p>
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calculator size={12} className="text-purple-500" /> V_FOOD_EMPLOYEE_MEALS</label>
-                    <input name="V_FOOD_EMPLOYEE_MEALS" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
-                    <p className="text-[9px] text-slate-400 font-medium">Cost of meals provided to staff.</p>
-                  </div>
-                  <div className="space-y-3 lg:col-span-3">
-                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] flex items-center gap-2">V_FOOD_SALES (DENOMINATOR)</label>
-                    <input name="V_FOOD_SALES" required type="number" step="0.01" className="w-full p-6 bg-indigo-50 border border-indigo-100 rounded-3xl focus:ring-4 focus:ring-indigo-500/20 outline-none font-black text-xl text-indigo-900" placeholder="Net Food Sales" />
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Crucial: All percentages are calculated against this certified net value.</p>
                   </div>
                 </div>
               </div>
@@ -1009,7 +1006,7 @@ const App: React.FC = () => {
         <main className="pt-40 pb-32 container mx-auto px-12 max-w-7xl">
           <div className="text-center mb-32 space-y-12">
             <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-sm animate-bounce">
-              <Sparkles size={14} /> Deterministic Truth Engine
+              <Lightbulb size={14} /> Deterministic Truth Engine
             </div>
             <h1 className="text-7xl md:text-[9rem] font-black mb-12 tracking-tighter leading-[0.85]">
               Certify Profit. <br />
