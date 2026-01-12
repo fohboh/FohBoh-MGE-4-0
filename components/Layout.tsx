@@ -14,7 +14,11 @@ import {
   CreditCard,
   Truck,
   LogOut,
-  Calendar
+  Calendar,
+  Layers,
+  Zap,
+  BookOpen,
+  HelpCircle
 } from 'lucide-react';
 import { DateRange } from '../types';
 
@@ -98,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({
             <ShieldCheck size={14} className="text-indigo-500" />
             V4.0 TRUTH TABLE
           </div>
-          <div className="text-[10px] text-slate-600 font-bold">© 2024 FOHBOH.AI INC.</div>
+          <div className="text-[10px] text-slate-600 font-bold">© 2026 FOHBOH.AI INC.</div>
         </div>
       </aside>
 
@@ -110,6 +114,14 @@ const Layout: React.FC<LayoutProps> = ({
             <h1 className="text-sm font-black text-slate-900 uppercase tracking-widest hidden lg:block">
               {activeTab.replace('_', ' ')}
             </h1>
+
+            {/* Top Navigation Links */}
+            <div className="hidden lg:flex items-center gap-10 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+              <button onClick={() => setActiveTab('registry')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Layers size={14} /> Modules</button>
+              <button onClick={() => setActiveTab('recovery')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Zap size={14} /> Use Cases</button>
+              <button onClick={() => setActiveTab('help')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><BookOpen size={14} /> Logic Docs</button>
+              <button onClick={() => setActiveTab('help')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
+            </div>
             
             {/* Global Date Period Picker */}
             <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-2.5 shadow-sm">

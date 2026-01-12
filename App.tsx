@@ -37,7 +37,11 @@ import {
   ArrowUpRight,
   BookOpen,
   HelpCircle,
-  Award
+  Award,
+  X,
+  Target,
+  Search,
+  CheckCircle
 } from 'lucide-react';
 import Layout from './components/Layout';
 import { 
@@ -355,7 +359,7 @@ const App: React.FC = () => {
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Layers size={14} /> Modules</button>
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Zap size={14} /> Use Cases</button>
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><BookOpen size={14} /> Logic Docs</button>
-          <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
+          <button onClick={() => { setShowLanding(false); setActiveTab('help'); }} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
         </div>
       </nav>
 
@@ -380,7 +384,7 @@ const App: React.FC = () => {
             >
               Start MGE Emulator <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="bg-white border border-slate-200 px-10 py-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <button onClick={() => { setShowLanding(false); setActiveTab('help'); }} className="bg-white border border-slate-200 px-10 py-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
               Explore Case Studies
             </button>
           </div>
@@ -474,13 +478,136 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="container mx-auto px-12 py-12 border-t border-slate-100 mt-12 flex flex-col md:flex-row justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        <div>© 2024 FohBoh.ai, Inc. All Rights Reserved. US Patent Pending.</div>
+        <div>© 2026 FohBoh.ai, Inc. All Rights Reserved. US Patent Pending.</div>
         <div className="flex gap-10 mt-6 md:mt-0">
           <a href="#" className="hover:text-slate-800 transition-colors">Contact Us</a>
           <a href="#" className="hover:text-slate-800 transition-colors">Terms & Conditions</a>
           <a href="#" className="hover:text-slate-800 transition-colors">API Docs</a>
         </div>
       </footer>
+    </div>
+  );
+
+  const renderHelp = () => (
+    <div className="max-w-5xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700">
+      {/* Dark Header */}
+      <div className="bg-[#0F172A] p-8 flex justify-between items-center text-white">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black">F</div>
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-widest opacity-60">MGE Resource Center</div>
+            <div className="text-xl font-bold tracking-tight">INTELLIGENCE & FRAMEWORK</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">Handbook</button>
+          <button className="bg-white/10 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">Architecture Loop</button>
+          <button onClick={() => setActiveTab('dashboard')} className="p-2 hover:bg-white/10 rounded-full"><X size={20} /></button>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="p-16 border-b border-slate-100">
+        <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-tight max-w-3xl">
+          The Kitchen vs. The Boardroom: <br />
+          <span className="text-[#3B82F6]">Why Your Restaurant AI Needs a Single Source of Truth</span>
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+          <div className="space-y-6">
+            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-4 mb-4">The Danger of Assuming You Are Right</h4>
+            <p className="text-slate-600 leading-relaxed font-medium">
+              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the <strong>"Data Trust Gap"</strong>.
+            </p>
+            <p className="text-slate-600 leading-relaxed font-medium">
+              Restaurant groups are often a <strong>"Tower of Babel"</strong>. Operations might define "Gross Sales" differently than Finance. Marketing measures "Customer Churn" based on loyalty, while managers use reservations.
+            </p>
+          </div>
+          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-100 flex items-center italic text-lg text-slate-700 font-semibold leading-relaxed">
+            "When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions—like mispricing a menu or under-calculating a shift—and scale that chaos across your entire chain."
+          </div>
+        </div>
+      </div>
+
+      {/* Solution Section */}
+      <div className="p-16 bg-[#F8FAFC]">
+        <div className="bg-[#0F172A] text-white p-12 rounded-[2.5rem] flex items-center justify-between shadow-xl">
+          <div className="max-w-xl">
+            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6">The Solution</h4>
+            <h3 className="text-3xl font-black mb-8 leading-tight uppercase">What is the Metrics Governance Engine?</h3>
+            <p className="text-slate-300 font-medium leading-relaxed">
+              Think of the MGE as the <strong>"Central Bank"</strong> for your restaurant group's business logic. It sits between your raw data (POS, Labor, Inventory) and the tools you use to consume it.
+            </p>
+            <div className="flex gap-4 mt-10">
+              <button className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest">Govern Definitions</button>
+              <button className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest">Standardize Logic</button>
+            </div>
+          </div>
+          <div className="hidden lg:block max-w-xs text-xs font-semibold text-slate-400 border-l border-white/10 pl-10 italic">
+            It ensures that when a CFO or an AI bot asks about "Table Turnover Rate," they are all using the exact same definition.
+          </div>
+        </div>
+      </div>
+
+      {/* Scoring Section */}
+      <div className="p-16 grid grid-cols-1 md:grid-cols-2 gap-20">
+        <div>
+          <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-8">Demystifying "Certified Data" & 0-100 Score</h4>
+          <p className="text-slate-600 font-medium leading-relaxed mb-8">
+            When MGE certifies a metric like <strong>REVPASH</strong>, it doesn't just check the math. It validates precisely which transaction tables the raw data originates from, the exact calculation logic, and accountability paths.
+          </p>
+          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-100 space-y-6">
+            <h5 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4">Governance Score Meaning:</h5>
+            <div className="flex items-start gap-4">
+              <div className="px-2 py-1 bg-rose-500 text-white text-[8px] font-black rounded-lg">LOW</div>
+              <p className="text-[11px] text-slate-600 font-semibold">A warning label indicating the definition is contested or unclear. <strong>"Use at your own risk."</strong></p>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="px-2 py-1 bg-emerald-500 text-white text-[8px] font-black rounded-lg">100</div>
+              <p className="text-[11px] text-slate-600 font-semibold">Signifies that the metric is fully standardized, audited, and safe to rely on for <strong>automated decisions.</strong></p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-full max-w-[320px] bg-gradient-to-br from-blue-500 to-indigo-600 p-12 rounded-[2.5rem] text-center shadow-2xl text-white relative">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-6 italic">"A confidence rating for decision-makers."</div>
+            <div className="text-8xl font-black tracking-tighter mb-4">0-100</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Why Section */}
+      <div className="p-16 bg-slate-50">
+        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-2 border-slate-900 pl-4 mb-8">Why Does This Matter?</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+          <p className="text-slate-600 font-medium leading-relaxed">
+            In a tight-margin industry, operating on opinions rather than facts is costly. Without governance, AI might advise you to cut labor hours during a peak time because it's using a <strong>flawed definition of "peak."</strong>
+          </p>
+        </div>
+        <div className="bg-orange-50 p-12 rounded-[2rem] border border-orange-100 text-center italic text-xl text-orange-950 font-bold leading-relaxed">
+          "This simulator allows you to experience the difference between navigating with a broken compass versus steering with certified, trusted intelligence."
+        </div>
+      </div>
+
+      {/* Pipeline Section */}
+      <div className="p-16 pb-24">
+        <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-12">Technical Pipeline Lifecycle</h4>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {[
+            { stage: '01', title: 'Truth Capture', desc: 'Immutable ingestion of raw transactional data.' },
+            { stage: '02', title: 'Semantic Alignment', desc: 'Normalizing temporal drift and mapping vendor fields.' },
+            { stage: '03', title: 'Detection Engine', desc: 'Running Pattern audits to identify leakage.' },
+            { stage: '04', title: 'Action Gating', desc: 'Trust-based firewall that enables automated workflows.' },
+            { stage: '05', title: 'Certification', desc: 'Generation of audit-grade ledgers for booking.' }
+          ].map((s, idx) => (
+            <div key={idx} className="bg-slate-50 p-8 rounded-2xl border border-slate-100 flex flex-col items-start text-left hover:bg-white hover:border-blue-500/50 hover:shadow-lg transition-all cursor-default">
+              <span className="text-[10px] font-black text-blue-500 uppercase mb-4 tracking-widest">Stage {s.stage}</span>
+              <h5 className="font-bold text-slate-900 mb-3">{s.title}</h5>
+              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
@@ -916,6 +1043,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
+      case 'help': return renderHelp();
       case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
       case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
       case 'audit': return renderModuleForm(ModuleType.CC_AUDIT);
