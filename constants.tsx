@@ -133,3 +133,62 @@ export const BLUEPRINT_CARDS = [
     note: 'Asset yield audit. Improving table turns increases revenue without overhead.'
   }
 ];
+
+export const FAQ_DATA = [
+  {
+    question: "What is the FohBoh MGE?",
+    answer: "The FohBoh MGE is a metrics governance and certification layer built specifically for restaurants and hospitality. It acts as a trusted data layer between your operational systems (like POS, inventory, and payroll) and your intelligence systems (like dashboards, reports, and AI), ensuring that every number you see is accurate, consistent, and trustworthy. Think of it as your restaurant’s 'financial GPS' - it syncs all your data sources, so everyone is looking at the same numbers, calculated the same way, every time."
+  },
+  {
+    question: "How is the MGE different from a dashboard, spreadsheet, or reporting tool?",
+    answer: "Dashboards and spreadsheets display data, they don’t govern it. The MGE certifies your data before it reaches any dashboard, report, or AI system. Unlike manual spreadsheets, the MGE: Guarantees the same formula is used across all locations and systems, Provides a Trust Score for every metric, Maintains a full audit trail of every calculation, Automatically enforces your business rules across your entire tech stack, and Makes data AI-safe and board-ready."
+  },
+  {
+    question: "Can't I just use a spreadsheet to calculate my KPIs?",
+    answer: "Yes, you could. A spreadsheet can calculate numbers. But it cannot: Guarantee that the same formula is used across all locations and systems; Provide a confidence score for every metric; Maintain an auditable trail of how every number was calculated; Automatically enforce your business rules across your entire tech stack; Certify data for safe AI consumption. The MGE turns tribal knowledge into executable, scalable, and auditable infrastructure."
+  },
+  {
+    question: "What kinds of problems does the MGE solve?",
+    answer: "Ends meetings where teams argue over whose numbers are right; Prevents false alarms, like 'missing inventory' that was actually employee meals; Ensures AI and forecasting tools work with accurate, consistent data; Scales your best practices and policies automatically across all locations; Eliminates 'metric drift' where different systems calculate the same KPI differently."
+  },
+  {
+    question: "How does the MGE help with AI and forecasting?",
+    answer: "AI tools are only as good as the data they're given. The MGE certifies a single version of the truth before AI ever sees the data, ensuring predictions are based on reality, not conflicting sources. This prevents AI 'hallucinations' and makes your forecasting tools truly reliable."
+  },
+  {
+    question: "What does the MGE certify?",
+    answer: "The MGE certifies the process, not just the numbers. It ensures that every calculation follows your exact business rules, is consistent across all systems, and is fully transparent and auditable. This includes certifying compliance with policies (e.g., manager approval for comps over $25) and consistency across the organization."
+  },
+  {
+    question: "Does the MGE fix bad data?",
+    answer: "The MGE doesn't correct errors in your source systems, but it will alert you when data is missing, inconsistent, or looks unusual, so you can fix it at the source."
+  },
+  {
+    question: "What is a Trust Score?",
+    answer: "Every metric certified by the MGE comes with a Trust Score (0–100). This score tells you how reliable the number is based on data freshness, completeness, and consistency. 95+ means data is fresh, complete, and consistent; Below 80 flags issues like missing invoices or outdated counts."
+  },
+  {
+    question: "What is a KPI Registry and KPI Vault?",
+    answer: "The KPI Registry is where you can create, test, and customize KPIs before they go live (flexible and collaborative). The KPI Vault is where KPIs are locked and governed; only authorized administrators can modify them, ensuring consistency, auditability, and trust."
+  },
+  {
+    question: "Does the MGE replace my POS, inventory, or accounting software?",
+    answer: "No. The MGE works with your existing systems. It unifies and certifies the data they produce, ensuring everyone is looking at the same trusted numbers."
+  },
+  {
+    question: "Is the MGE only for large restaurant groups?",
+    answer: "No. The MGE is designed for any operator who uses multiple systems, cares about data consistency, and wants to scale with confidence. It's especially valuable for growing brands and franchise groups."
+  },
+  {
+    question: "Is the MGE secure and auditable?",
+    answer: "Yes. Every action in the MGE is logged in an immutable audit trail. You can see who changed a rule, when, and what the impact was."
+  },
+  {
+    question: "How does the MGE prevent 'metric drift'?",
+    answer: "Metric drift happens when different systems calculate the same metric differently. The MGE eliminates this by storing one official version of each formula, tracking every change with version control, and ensuring the same formula is used across all tools."
+  },
+  {
+    question: "How long does it take to implement the MGE?",
+    answer: "Implementation timelines vary, but the MGE is designed for seamless integration. Most users begin with manual entry or custom CSV templates before investing in a full API integration."
+  }
+];

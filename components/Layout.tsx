@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   BarChart3, 
@@ -17,7 +18,8 @@ import {
   Zap,
   BookOpen,
   HelpCircle,
-  ArrowLeft
+  ArrowLeft,
+  MessageCircleQuestion
 } from 'lucide-react';
 import { DateRange } from '../types.ts';
 
@@ -56,6 +58,7 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'audit', label: 'CC Audit', icon: CreditCard },
     { id: 'vault', label: 'Certified Vault', icon: Lock },
     { id: 'history', label: 'Audit Log', icon: History },
+    { id: 'faq', label: 'FAQ Center', icon: MessageCircleQuestion },
   ];
 
   return (
@@ -71,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({
           <span className="font-black text-xl text-white tracking-tighter uppercase">FohBoh <span className="text-indigo-400">MGE</span></span>
         </div>
         
-        <nav className="flex-1 py-8 px-4 space-y-2">
+        <nav className="flex-1 py-8 px-4 space-y-2 overflow-y-auto no-scrollbar">
           {menuItems.map((item) => (
             <button 
               key={item.id} 

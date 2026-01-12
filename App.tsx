@@ -45,7 +45,10 @@ import {
   Info,
   ChevronRight,
   Settings,
-  Key
+  Key,
+  MessageCircleQuestion,
+  ChevronDown,
+  Search as SearchIcon
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -59,7 +62,7 @@ import {
   DateRange,
   ComparisonDelta
 } from './types.ts';
-import { STANDARD_FORMULAS, CSV_TEMPLATES, GLOSSARY_LOGIC, PIPELINE_STAGES, BLUEPRINT_CARDS } from './constants.tsx';
+import { STANDARD_FORMULAS, CSV_TEMPLATES, GLOSSARY_LOGIC, PIPELINE_STAGES, BLUEPRINT_CARDS, FAQ_DATA } from './constants.tsx';
 import { geminiService } from './services/geminiService.ts';
 
 const App: React.FC = () => {
@@ -98,6 +101,10 @@ const App: React.FC = () => {
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [newPass, setNewPass] = useState('');
   const [helpError, setHelpError] = useState('');
+
+  // FAQ State
+  const [faqSearch, setFaqSearch] = useState('');
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   // Session Management
   useEffect(() => {
@@ -242,7 +249,7 @@ const App: React.FC = () => {
   // Logic Docs Auth Handlers
   const handleHelpLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const storedPass = localStorage.getItem('fohboh_help_pass') || 'fohboh-admin';
+    const storedPass = localStorage.getItem('fohboh_help_pass') || 'FOHBOHMGE2026';
     if (helpPasswordInput === storedPass) {
       setIsHelpAuth(true);
       setHelpError('');
@@ -252,9 +259,9 @@ const App: React.FC = () => {
   };
 
   const handleRestorePassword = () => {
-    localStorage.setItem('fohboh_help_pass', 'fohboh-admin');
-    alert('Password restored to default: fohboh-admin');
-    setHelpPasswordInput('fohboh-admin');
+    localStorage.setItem('fohboh_help_pass', 'FOHBOHMGE2026');
+    alert('Password restored to default: FOHBOHMGE2026');
+    setHelpPasswordInput('FOHBOHMGE2026');
   };
 
   const handleChangePassword = () => {
@@ -266,6 +273,70 @@ const App: React.FC = () => {
     setIsChangingPass(false);
     setNewPass('');
     alert('Password updated successfully.');
+  };
+
+  const renderFaqSection = () => {
+    const filteredFaq = FAQ_DATA.filter(faq => 
+      faq.question.toLowerCase().includes(faqSearch.toLowerCase()) || 
+      faq.answer.toLowerCase().includes(faqSearch.toLowerCase())
+    );
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500">
+        <div className="flex flex-col items-center text-center space-y-6">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center shadow-lg"><MessageCircleQuestion size={32} /></div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Knowledge Base <span className="text-indigo-600">FAQ</span></h2>
+          <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] max-w-lg leading-relaxed">Everything you need to know about the FohBoh Metrics Governance Engine.</p>
+        </div>
+
+        <div className="relative max-w-2xl mx-auto">
+          <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input 
+            type="text" 
+            placeholder="Search questions or logic keywords..."
+            value={faqSearch}
+            onChange={(e) => setFaqSearch(e.target.value)}
+            className="w-full bg-white border border-slate-200 p-6 pl-16 rounded-[2rem] text-slate-900 font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xl shadow-slate-200/50"
+          />
+        </div>
+
+        <div className="space-y-4">
+          {filteredFaq.length > 0 ? filteredFaq.map((faq, idx) => (
+            <div key={idx} className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+              <button 
+                onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                className="w-full text-left p-8 flex items-center justify-between group"
+              >
+                <span className="font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{faq.question}</span>
+                <div className={`p-2 rounded-full bg-slate-50 transition-transform duration-300 ${expandedFaq === idx ? 'rotate-180 bg-indigo-50 text-indigo-600' : 'text-slate-400'}`}>
+                  <ChevronDown size={20} />
+                </div>
+              </button>
+              {expandedFaq === idx && (
+                <div className="px-8 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300">
+                  <div className="w-full h-px bg-slate-50 mb-6" />
+                  <p className="text-slate-500 font-medium leading-relaxed text-sm whitespace-pre-wrap">{faq.answer}</p>
+                </div>
+              )}
+            </div>
+          )) : (
+            <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
+              <div className="text-slate-300 mb-4 flex justify-center"><SearchIcon size={48} /></div>
+              <p className="text-slate-400 font-black uppercase tracking-widest">No matching questions found.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-indigo-600 p-12 rounded-[3rem] text-center space-y-6 shadow-2xl shadow-indigo-900/20">
+          <h3 className="text-2xl font-black text-white tracking-tight">Still have questions?</h3>
+          <p className="text-indigo-100 font-medium text-sm">Our engineering and logic teams are here to help you achieve 100% data trust.</p>
+          <div className="flex justify-center gap-4 pt-4">
+            <button className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-colors">Contact Support</button>
+            <button className="bg-indigo-700 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-800 transition-colors">Visit Partners</button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderHelpPortal = () => {
@@ -687,6 +758,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
       case 'help': return renderHelpPortal();
+      case 'faq': return renderFaqSection();
       case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
       case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
       case 'registry':
@@ -750,7 +822,8 @@ const App: React.FC = () => {
           <div className="hidden md:flex items-center gap-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
             <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('registry'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Layers size={14} /> Logic Core</button>
             <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('dashboard'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Zap size={14} /> Recovery</button>
-            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-indigo-500"><BookOpen size={14} /> Admin Portal</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-indigo-500"><MessageCircleQuestion size={14} /> FAQ Center</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-slate-400"><BookOpen size={14} /> Admin Portal</button>
           </div>
           <button 
             onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
@@ -777,10 +850,10 @@ const App: React.FC = () => {
                 onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
                 className="bg-slate-900 text-white px-12 py-6 rounded-[1.5rem] font-black text-sm flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-indigo-600 transition-all active:scale-95 group"
               >
-                Start MGE Emulator <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                Start MGE Simulator <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
               </button>
-              <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="bg-white border-2 border-slate-100 px-12 py-6 rounded-[1.5rem] font-black text-sm text-slate-600 hover:bg-slate-50 transition-all shadow-xl shadow-slate-200/20">
-                MGE Architecture Docs
+              <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="bg-white border-2 border-slate-100 px-12 py-6 rounded-[1.5rem] font-black text-sm text-slate-600 hover:bg-slate-50 transition-all shadow-xl shadow-slate-200/20">
+                View Knowledge FAQ
               </button>
             </div>
           </div>
