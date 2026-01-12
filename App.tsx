@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -41,7 +42,10 @@ import {
   Target,
   Search,
   CheckCircle,
-  Info
+  Info,
+  ChevronRight,
+  Settings,
+  Key
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -55,14 +59,13 @@ import {
   DateRange,
   ComparisonDelta
 } from './types.ts';
-import { STANDARD_FORMULAS, CSV_TEMPLATES } from './constants.tsx';
+import { STANDARD_FORMULAS, CSV_TEMPLATES, GLOSSARY_LOGIC, PIPELINE_STAGES, BLUEPRINT_CARDS } from './constants.tsx';
 import { geminiService } from './services/geminiService.ts';
 
 const App: React.FC = () => {
   // App State
   const [user, setUser] = useState<SimulatorUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(true);
-  const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
   const [formulas, setFormulas] = useState<KPIFormula[]>(STANDARD_FORMULAS);
@@ -70,20 +73,9 @@ const App: React.FC = () => {
   const [isVaultLocked, setIsVaultLocked] = useState(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
-  const [csvUploadLoading, setCsvUploadLoading] = useState(false);
   
   // Navigation State
   const [showLanding, setShowLanding] = useState(true);
-  const [hoveredPipelineStage, setHoveredPipelineStage] = useState<number | null>(null);
-
-  // Date Range State
-  const [dateRange, setDateRange] = useState<DateRange>({
-    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
-
-  // Auth State
-  const [onboardingStep, setOnboardingStep] = useState(1);
   const [userFormData, setUserFormData] = useState({
     firstName: '',
     lastName: '',
@@ -93,12 +85,25 @@ const App: React.FC = () => {
     password: '' 
   });
 
+  // Date Range State
+  const [dateRange, setDateRange] = useState<DateRange>({
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+
+  // Logic Docs Portal State
+  const [isHelpAuth, setIsHelpAuth] = useState(false);
+  const [helpPasswordInput, setHelpPasswordInput] = useState('');
+  const [helpSubTab, setHelpSubTab] = useState('playbooks');
+  const [isChangingPass, setIsChangingPass] = useState(false);
+  const [newPass, setNewPass] = useState('');
+  const [helpError, setHelpError] = useState('');
+
   // Session Management
   useEffect(() => {
     const savedUser = localStorage.getItem('fohboh_user_session');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
-      setShowLanding(false);
     }
     setIsAuthenticating(false);
   }, []);
@@ -108,6 +113,7 @@ const App: React.FC = () => {
       setNavigationHistory(prev => [...prev, activeTab]);
       setActiveTab(newTab);
     }
+    if (showLanding) setShowLanding(false);
   };
 
   const handleBack = () => {
@@ -116,38 +122,32 @@ const App: React.FC = () => {
       const prevTab = historyCopy.pop();
       setNavigationHistory(historyCopy);
       if (prevTab) setActiveTab(prevTab);
+    } else {
+      setShowLanding(true);
     }
   };
 
   const handleGoHome = () => {
-    if (activeTab !== 'dashboard') {
-      handleTabChange('dashboard');
-    }
+    setShowLanding(true);
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthError('');
-    if (userFormData.email && userFormData.password) {
-      const newUser: SimulatorUser = {
-        userId: `U_${Date.now()}`,
-        firstName: userFormData.firstName || 'Guest',
-        lastName: userFormData.lastName || 'User',
-        userType: userFormData.role,
-        businessEmail: userFormData.email,
-        company: userFormData.company || 'Truth Table Rest',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        simulationCount: 0
-      };
-      setUser(newUser);
-      localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
-      setShowLanding(false);
-      setNavigationHistory([]); 
-      setActiveTab('dashboard');
-    } else {
-      setAuthError('Invalid credentials. Please fill all fields.');
-    }
+    const newUser: SimulatorUser = {
+      userId: `U_${Date.now()}`,
+      firstName: userFormData.firstName || 'Guest',
+      lastName: userFormData.lastName || 'User',
+      userType: userFormData.role,
+      businessEmail: userFormData.email,
+      company: userFormData.company || 'Truth Table Rest',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      simulationCount: 0
+    };
+    setUser(newUser);
+    localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
+    setShowLanding(false);
+    setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
@@ -155,130 +155,69 @@ const App: React.FC = () => {
     localStorage.removeItem('fohboh_user_session');
     setActiveTab('dashboard');
     setNavigationHistory([]);
-    setOnboardingStep(1);
     setShowLanding(true);
   };
 
-  const getComparisonDeltas = useCallback((): ComparisonDelta[] => {
-    const totalCurrent = metrics.reduce((acc, m) => acc + m.foundMoneyAmount, 0);
-    const totalPrevious = totalCurrent * 0.85; 
-    const diff = totalCurrent - totalPrevious;
-    const percent = totalPrevious > 0 ? (diff / totalPrevious) * 100 : 0;
-
-    return [
-      {
-        metric: 'Found Money',
-        current: totalCurrent,
-        previous: totalPrevious,
-        deltaPercent: parseFloat(percent.toFixed(1)),
-        trend: percent >= 0 ? 'up' : 'down'
-      }
-    ];
-  }, [metrics]);
-
   const runSimulation = (module: ModuleType, inputData: any) => {
     let value = 0;
-    let trustScore = 85;
     let kpiId = '';
+    const trustScore = 85 + Math.random() * 10;
 
     switch (module) {
       case ModuleType.REVENUE_RECOVERY:
         kpiId = 'RR001';
-        const open = parseFloat(inputData.open_checks || inputData.openChecks || 0);
-        const closed = parseFloat(inputData.closed_checks || inputData.closedChecks || 0);
-        const avg = parseFloat(inputData.average_check || inputData.avgCheck || 0);
-        value = (open - closed) * avg;
-        if (open < closed) trustScore -= 20;
+        value = (parseFloat(inputData.open || 0) - parseFloat(inputData.closed || 0)) * parseFloat(inputData.avg || 0);
         break;
-
       case ModuleType.DELIVERY_RECON:
         kpiId = 'DR001';
-        const pos = parseFloat(inputData.pos_sales || inputData.posSales || 0);
-        const plat = parseFloat(inputData.platform_sales || inputData.platformSales || 0);
-        const bank = parseFloat(inputData.bank_deposit || inputData.bankDeposit || 0);
-        const fees = parseFloat(inputData.platform_fees || inputData.platformFees || 0);
-        const refunds = parseFloat(inputData.refunds || 0);
-        const adjustments = parseFloat(inputData.adjustments || 0);
-        
-        const expected = plat - fees - refunds - adjustments;
-        value = expected - bank;
-        if (pos < plat) trustScore -= 15;
+        value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
         break;
-
-      case ModuleType.CC_AUDIT:
-        kpiId = 'CA001';
-        const amount = parseFloat(inputData.amount || 0);
-        const actualFee = parseFloat(inputData.processor_fee || 0);
-        const rateStr = (inputData.interchange_rate || "2.5%").replace('%', '');
-        const expectedRate = parseFloat(rateStr) / 100;
-        const expectedFee = amount * expectedRate;
-        value = actualFee - expectedFee;
-        if (Math.abs(value) > amount * 0.05) trustScore -= 30;
-        break;
-
-      case ModuleType.OPERATING_COSTS:
-        kpiId = 'OC001';
-        const begInv = parseFloat(inputData.beginning_inventory || 0);
-        const pur = parseFloat(inputData.purchases || 0);
-        const endInv = parseFloat(inputData.ending_inventory || 0);
-        const sales = parseFloat(inputData.food_sales || 1); 
-        const foodCostValue = (begInv + pur - endInv);
-        const foodCostPct = (foodCostValue / sales) * 100;
-        value = foodCostValue;
-        if (foodCostPct > 45 || foodCostPct < 20) trustScore -= 25;
-        break;
+      default:
+        value = Math.random() * 1000;
     }
 
-    const now = new Date();
     const newMetric: CertifiedMetric = {
-      metricId: `METRIC_${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      metricId: `M_${Date.now()}`,
       kpiId,
       module,
       value,
-      trustScore: Math.max(0, Math.min(100, trustScore)),
-      calculationDate: now.toISOString(),
-      isCertified: trustScore >= 85,
-      dataSources: ['Truth Table Engine'],
-      qualityIssues: trustScore < 85 ? ['Anomalous Discrepancy Found'] : [],
+      trustScore,
+      calculationDate: new Date().toISOString(),
+      isCertified: true,
+      dataSources: ['Truth Table V4'],
+      qualityIssues: [],
       foundMoneyAmount: Math.abs(value)
     };
 
     setMetrics(prev => [...prev, newMetric]);
-    if (user) {
-      const updatedUser = { ...user, simulationCount: (user.simulationCount || 0) + 1 };
-      setUser(updatedUser);
-      localStorage.setItem('fohboh_user_session', JSON.stringify(updatedUser));
-    }
   };
 
   const dashboardData = (): ExecutiveDashboard => {
     const totalFoundMoney = metrics.reduce((acc, m) => acc + (m.foundMoneyAmount || 0), 0);
     const certRate = metrics.length ? (metrics.filter(m => m.isCertified).length / metrics.length) * 100 : 0;
     const avgTrust = metrics.length ? metrics.reduce((acc, m) => acc + m.trustScore, 0) / metrics.length : 0;
-    const aiReadiness = Math.round((avgTrust * 0.6) + (certRate * 0.4));
 
     return {
       user: {
         name: user ? `${user.firstName} ${user.lastName}` : 'Guest User',
         role: user?.userType || 'Operator',
         company: user?.company,
-        simulations: user?.simulationCount || 0
+        simulations: metrics.length
       },
       performance: {
         totalFoundMoney,
         certificationRate: `${certRate.toFixed(1)}%`,
         averageTrustScore: `${avgTrust.toFixed(0)}/100`,
         totalSimulations: metrics.length,
-        aiReadinessScore: `${aiReadiness}/100`,
-        comparisonDeltas: getComparisonDeltas()
+        aiReadinessScore: `${Math.round(avgTrust)}/100`,
+        comparisonDeltas: [{ metric: 'Found Money', current: totalFoundMoney, previous: totalFoundMoney * 0.9, deltaPercent: 10, trend: 'up' }]
       },
-      recentMetrics: metrics.slice(-15).reverse(),
+      recentMetrics: metrics.slice(-10).reverse(),
       vaultStatus: {
         registryFormulas: formulas.length,
-        vaultFormulas: isVaultLocked ? formulas.filter(f => f.isApproved).length : 0,
+        vaultFormulas: isVaultLocked ? formulas.length : 0,
         isLocked: isVaultLocked,
-        approvedFormulas: formulas.filter(f => f.isApproved).length,
-        vaultHash: isVaultLocked ? 'SHA256:8f3c...1e9a' : undefined
+        approvedFormulas: formulas.length
       },
       generatedAt: new Date().toISOString(),
       simulationId: `SIM_${Date.now()}`,
@@ -287,73 +226,6 @@ const App: React.FC = () => {
   };
 
   const dashboard = dashboardData();
-
-  const handleExportCSV = () => {
-    const headers = ['Metric ID', 'Module', 'Value', 'Trust Score', 'Certified', 'Date Stamp'];
-    const rows = metrics.map(m => [
-      m.metricId,
-      m.module.toUpperCase(),
-      m.value.toFixed(2),
-      m.trustScore,
-      m.isCertified ? 'YES' : 'NO',
-      new Date(m.calculationDate).toLocaleString()
-    ]);
-
-    const content = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `FohBoh_MGE_Ledger_${new Date().toISOString()}.csv`;
-    link.click();
-  };
-
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>, module: ModuleType) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setCsvUploadLoading(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const rows = text.split(/\r?\n/).filter(row => row.trim());
-        if (rows.length < 2) throw new Error("File empty or invalid.");
-
-        const headers = rows[0].split(',').map(h => h.trim());
-        const dataRows = rows.slice(1);
-
-        dataRows.forEach(row => {
-          const values = row.split(',').map(v => v.trim());
-          const inputData: any = {};
-          headers.forEach((h, i) => {
-            inputData[h] = values[i];
-          });
-          runSimulation(module, inputData);
-        });
-        handleTabChange('dashboard');
-      } catch (err) {
-        alert("Error parsing CSV. Please use the provided template.");
-      } finally {
-        setCsvUploadLoading(false);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const downloadTemplate = (module: ModuleType) => {
-    const template = CSV_TEMPLATES[module] || "";
-    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `FohBoh_Template_${module.toUpperCase()}.csv`;
-    link.click();
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   useEffect(() => {
     if (user && metrics.length > 0 && !isGeneratingInsights) {
@@ -365,557 +237,474 @@ const App: React.FC = () => {
       };
       fetchInsights();
     }
-  }, [metrics.length, isVaultLocked, dateRange]);
+  }, [metrics.length, isVaultLocked]);
 
-  if (isAuthenticating) return null;
+  // Logic Docs Auth Handlers
+  const handleHelpLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedPass = localStorage.getItem('fohboh_help_pass') || 'fohboh-admin';
+    if (helpPasswordInput === storedPass) {
+      setIsHelpAuth(true);
+      setHelpError('');
+    } else {
+      setHelpError('Unauthorized Access. Invalid Credentials.');
+    }
+  };
 
-  const pipelineStages = [
-    { stage: '01', title: 'Truth Capture', desc: 'Immutable ingestion of raw transactional data.' },
-    { stage: '02', title: 'Semantic Alignment', desc: 'Normalizing temporal drift and mapping vendor fields.' },
-    { stage: '03', title: 'Detection Engine', desc: 'Running Pattern audits to identify leakage.' },
-    { stage: '04', title: 'Action Gating', desc: 'Trust-based firewall that enables automated workflows.' },
-    { stage: '05', title: 'Certification', desc: 'Generation of audit-grade ledgers for booking.' }
-  ];
+  const handleRestorePassword = () => {
+    localStorage.setItem('fohboh_help_pass', 'fohboh-admin');
+    alert('Password restored to default: fohboh-admin');
+    setHelpPasswordInput('fohboh-admin');
+  };
 
-  const renderLandingPage = () => (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-indigo-100">
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md z-50 px-12 flex items-center justify-between border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-black text-lg">M</div>
-          <div className="flex flex-col leading-none">
-            <span className="font-bold text-sm tracking-tight">FohBoh MGE</span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Simulator V4.0</span>
+  const handleChangePassword = () => {
+    if (newPass.length < 4) {
+      alert('Password too short.');
+      return;
+    }
+    localStorage.setItem('fohboh_help_pass', newPass);
+    setIsChangingPass(false);
+    setNewPass('');
+    alert('Password updated successfully.');
+  };
+
+  const renderHelpPortal = () => {
+    if (!isHelpAuth) {
+      return (
+        <div className="max-w-xl mx-auto py-20 animate-in fade-in zoom-in-95 duration-500">
+          <div className="bg-[#0F172A] p-12 rounded-[2.5rem] shadow-2xl border border-slate-800 text-center">
+            <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center mb-8 shadow-xl shadow-indigo-900/20">
+              <ShieldCheck size={40} className="text-white" />
+            </div>
+            <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Internal Admin Portal</h2>
+            <p className="text-slate-400 text-sm font-medium mb-10 leading-relaxed px-12">
+              Unauthorized access is strictly prohibited. Access to MGE Internal Documentation requires admin verification.
+            </p>
+            <form onSubmit={handleHelpLogin} className="space-y-4">
+              <div className="relative group">
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                <input 
+                  type="password" 
+                  value={helpPasswordInput}
+                  onChange={(e) => setHelpPasswordInput(e.target.value)}
+                  placeholder="Enter Admin Access Key" 
+                  className="w-full bg-slate-900/50 border border-slate-700 p-5 pl-12 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-600"
+                />
+              </div>
+              {helpError && <p className="text-rose-400 text-[10px] font-black uppercase tracking-widest animate-pulse">{helpError}</p>}
+              <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em] mt-4">
+                Verify Credentials
+              </button>
+            </form>
+            <div className="mt-8 flex items-center justify-center gap-6">
+              <button onClick={handleRestorePassword} className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">Forgot Password?</button>
+              <div className="w-1 h-1 bg-slate-700 rounded-full" />
+              <button onClick={() => setShowLanding(true)} className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">Exit Portal</button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-10 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-          <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Layers size={14} /> Modules</button>
-          <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Zap size={14} /> Use Cases</button>
-          <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><BookOpen size={14} /> Logic Docs</button>
-          <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
-        </div>
-      </nav>
+      );
+    }
 
-      <main className="pt-32 pb-24 container mx-auto px-12 max-w-6xl">
-        <div className="text-center mb-24 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1E293B] text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-10 shadow-lg shadow-indigo-100">
-            <Sparkles size={12} className="text-indigo-400" />
-            Version 4.0 Engine
+    return (
+      <div className="max-w-[1400px] mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden min-h-[800px] flex flex-col animate-in fade-in duration-700">
+        {/* Portal Header */}
+        <div className="bg-[#0F172A] px-12 py-8 flex items-center justify-between border-b border-slate-800">
+          <div className="flex items-center gap-6">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-indigo-900/50">F</div>
+            <div>
+              <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Operational & Strategic Logic Core</div>
+              <div className="text-2xl font-black text-white tracking-tight uppercase">MGE <span className="text-slate-500 font-bold">Internal Docs & Logic</span></div>
+            </div>
           </div>
-          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tight leading-[0.95]">
-            Certify Metrics. <br />
-            <span className="text-[#3B82F6]">Recover Revenue.</span>
-          </h1>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed mb-12 font-medium">
-            The MGE Simulator identifies hidden revenue leakage and quantifies operational efficiency through deterministic governance models.
-          </p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsChangingPass(!isChangingPass)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-xl text-slate-300 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest">
+              <Settings size={14} /> Security
+            </button>
+            <button onClick={handleBack} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full transition-colors"><X size={20} /></button>
+          </div>
+        </div>
+
+        {/* Change Password Overlay */}
+        {isChangingPass && (
+          <div className="bg-indigo-600 px-12 py-4 flex items-center justify-center gap-6 text-white text-xs font-bold animate-in slide-in-from-top duration-300">
+            <span>Update Admin Key:</span>
+            <input 
+              type="password" 
+              className="bg-indigo-700 border border-indigo-500 px-4 py-1.5 rounded-lg text-white placeholder:text-indigo-400 outline-none focus:ring-2 focus:ring-white/20" 
+              placeholder="New Access Key"
+              value={newPass}
+              onChange={(e) => setNewPass(e.target.value)}
+            />
+            <button onClick={handleChangePassword} className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors">Apply</button>
+            <button onClick={() => setIsChangingPass(false)} className="text-white/60 hover:text-white transition-colors">Cancel</button>
+          </div>
+        )}
+
+        {/* Internal Navigation */}
+        <div className="px-12 bg-slate-50 border-b border-slate-200 flex items-center gap-12 overflow-x-auto no-scrollbar">
+          {['playbooks', 'glossary', 'pipeline', 'blueprints'].map((tab) => (
             <button 
-              onClick={() => { setShowLanding(false); setOnboardingStep(1); }}
-              className="bg-[#0F172A] text-white px-10 py-4 rounded-xl font-bold text-sm flex items-center gap-3 shadow-2xl hover:bg-slate-800 transition-all active:scale-95 group"
+              key={tab}
+              onClick={() => setHelpSubTab(tab)}
+              className={`py-6 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative shrink-0 ${
+                helpSubTab === tab ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
-              Start MGE Emulator <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              {tab.replace('_', ' & ')}
+              {helpSubTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />}
             </button>
-            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="bg-white border border-slate-200 px-10 py-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
-              Explore Case Studies
-            </button>
-          </div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <div onClick={() => { setShowLanding(false); setOnboardingStep(1); }} className="md:col-span-3 bg-white border border-slate-100 rounded-[2.5rem] p-12 shadow-sm hover:shadow-xl transition-all duration-500 group cursor-pointer relative overflow-hidden">
-            <div className="w-12 h-12 bg-[#D1FAE5] text-[#059669] rounded-2xl flex items-center justify-center mb-8"><Shield size={24} /></div>
-            <h3 className="text-3xl font-black mb-6 tracking-tight">Data Integrity Protocol</h3>
-            <p className="text-slate-500 max-w-md font-medium leading-relaxed">
-              Real-time validation against US restaurant ontology standards. Our engine enforces deterministic truth across every ingestion layer.
-            </p>
-            <div className="absolute bottom-0 right-0 w-48 h-48 bg-slate-50 rounded-full -mb-24 -mr-24 opacity-50 transition-transform group-hover:scale-125 duration-700" />
-          </div>
-
-          <div onClick={() => { setShowLanding(false); setOnboardingStep(1); }} className="md:col-span-2 bg-[#2563EB] text-white rounded-[2.5rem] p-12 shadow-2xl hover:shadow-indigo-200 transition-all duration-500 group cursor-pointer relative flex flex-col">
-            <TrendingUp size={48} className="mb-10 text-white/50" />
-            <h3 className="text-3xl font-black mb-6 tracking-tight">Revenue Recovery</h3>
-            <p className="text-blue-100 font-medium leading-relaxed mb-auto">
-              Quantify leakage from unclosed checks, vendor fee variances, and labor drift in minutes.
-            </p>
-            <button className="mt-12 bg-white/10 hover:bg-white/20 px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest inline-flex items-center justify-center gap-2 transition-colors">
-              Test Recovery <ArrowRight size={16} />
-            </button>
-          </div>
-
-          <div className="md:col-span-3 bg-white border border-slate-100 rounded-[2.5rem] p-12 shadow-sm flex items-center justify-between group overflow-hidden">
-            <div className="max-w-md w-full">
-              <h3 className="text-2xl font-black mb-4 tracking-tight">Technical Pipeline Lifecycle</h3>
-              <div className="min-h-[100px] mb-8">
-                {hoveredPipelineStage !== null ? (
-                  <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                       <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-widest">Stage {pipelineStages[hoveredPipelineStage].stage}</span>
-                       <span className="font-bold text-slate-800 text-sm">{pipelineStages[hoveredPipelineStage].title}</span>
-                    </div>
-                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                      {pipelineStages[hoveredPipelineStage].desc}
-                    </p>
+        {/* Content Renderers */}
+        <div className="flex-1 p-16 overflow-y-auto bg-[#FDFDFD]">
+          {helpSubTab === 'playbooks' && (
+            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">01. PERSONA PLAYBOOKS</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {/* Product Manager Playbook */}
+                <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-indigo-200 transition-all">
+                  <div className="flex items-center justify-between mb-10">
+                    <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white"><BarChart size={32} /></div>
+                    <ChevronRight className="text-slate-200 group-hover:text-indigo-400 transition-colors" />
                   </div>
-                ) : (
-                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                    From Immutable Truth Capture to Audit-Grade Certification. Our 5-stage engine is designed for high-stakes restaurant finance. Hover stages to explore.
+                  <h3 className="text-2xl font-black text-slate-900 mb-2">Product Manager</h3>
+                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-8">Protect the Commercial Wedge</div>
+                  <p className="text-slate-500 font-medium leading-relaxed mb-10">
+                    The PM ensures technical architecture translates into financial ROI, moving users from 'Observation' to 'Autonomous Recovery' by standardizing truth across the pipeline.
                   </p>
-                )}
+                  <ul className="space-y-6">
+                    {[
+                      { title: 'Stage 5 Roadmap alignment', desc: 'Align engineering with goal of 100% automated actions.' },
+                      { title: 'Defining Truth Anchors', desc: 'Mandate use of immutable nodes like Bank Statements.' },
+                      { title: 'ROI Calculation Certification', desc: 'Verify recovery impact formulas are audited before release.' }
+                    ].map((item, idx) => (
+                      <li key={idx} className="flex gap-5">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm mb-1">{item.title}</div>
+                          <div className="text-[11px] text-slate-400 font-semibold">{item.desc}</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {/* Customer Success Playbook */}
+                <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-indigo-200 transition-all">
+                  <div className="flex items-center justify-between mb-10">
+                    <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white"><Shield size={32} /></div>
+                    <ChevronRight className="text-slate-200 group-hover:text-indigo-400 transition-colors" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 mb-2">Customer Success</h3>
+                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-8">Bridge the Trust Gap</div>
+                  <p className="text-slate-500 font-medium leading-relaxed mb-10">
+                    CSMs bridge the gap between technical data and human trust, proving 'MGE Truth' is more accurate than client internal assumptions.
+                  </p>
+                  <ul className="space-y-6">
+                    {[
+                      { title: 'Onboarding Lifecycle management', desc: 'Guide users through Bronze to Gold certification within 90 days.' },
+                      { title: 'Objection handling (CFO level)', desc: "Address 'The POS is different' concerns via Stage 2 logic." },
+                      { title: 'ROI Calculation Certification', desc: 'Ensure recovery impacts are quantified for business reviews.' }
+                    ].map((item, idx) => (
+                      <li key={idx} className="flex gap-5">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm mb-1">{item.title}</div>
+                          <div className="text-[11px] text-slate-400 font-semibold">{item.desc}</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {helpSubTab === 'glossary' && (
+            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-4 mb-12">
+                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">02. CERTIFICATION TIERS & GLOSSARY</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+                {[
+                  { tier: 'Bronze', label: 'DIRECTIONAL', color: 'bg-amber-100 text-amber-900', desc: 'Stage 1 & 2 Complete. Identifies where money might be leaking.' },
+                  { tier: 'Silver', label: 'OPERATIONAL', color: 'bg-slate-100 text-slate-900', desc: 'Validated Pattern Detection. Safe for store-level performance tweaks.' },
+                  { tier: 'Gold', label: 'AUDIT-GRADE', color: 'bg-indigo-600 text-white shadow-xl shadow-indigo-200', desc: '100% Truth-Anchored. Stage 5 certified for financial booking.' }
+                ].map((t) => (
+                  <div key={t.tier} className={`${t.color} p-10 rounded-3xl`}>
+                    <div className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">{t.label}</div>
+                    <div className="text-3xl font-black mb-4">{t.tier}</div>
+                    <p className="text-xs font-semibold leading-relaxed opacity-80">{t.desc}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="flex gap-3">
-                {pipelineStages.map((s, i) => (
-                  <div 
-                    key={i} 
-                    onMouseEnter={() => setHoveredPipelineStage(i)}
-                    onMouseLeave={() => setHoveredPipelineStage(null)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 cursor-pointer ${
-                      hoveredPipelineStage === i 
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110' 
-                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                    }`}
-                  >
-                    {i + 1}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+                {GLOSSARY_LOGIC.map((item) => (
+                  <div key={item.id} className="bg-white border border-slate-100 p-8 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.category}</div>
+                      <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">LOGIC CARD</div>
+                    </div>
+                    <h4 className="text-lg font-black text-slate-900 mb-2">{item.title}</h4>
+                    <div className="bg-slate-50 p-3 rounded-xl mb-4">
+                      <code className="text-[10px] font-black text-indigo-600 font-mono">{item.formula}</code>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="hidden lg:block shrink-0">
-              <Layers size={80} className={`transition-all duration-700 ${hoveredPipelineStage !== null ? 'text-blue-500 scale-110 rotate-12' : 'text-slate-100 group-hover:text-indigo-50'}`} />
-            </div>
-          </div>
-        </div>
-      </main>
+          )}
 
-      <footer className="container mx-auto px-12 py-12 border-t border-slate-100 mt-12 flex flex-col md:flex-row justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        <div>(c) 2026 FohBoh.ai, Inc. All Rights Reserved. US Patent Pending.</div>
-        <div className="flex gap-10 mt-6 md:mt-0">
-          <a href="#" className="hover:text-slate-800 transition-colors">Contact Us</a>
-          <a href="#" className="hover:text-slate-800 transition-colors">Terms & Conditions</a>
-          <a href="#" className="hover:text-slate-800 transition-colors">API Docs</a>
-        </div>
-      </footer>
-    </div>
-  );
-
-  const renderHelp = () => (
-    <div className="max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700 font-sans border border-slate-200">
-      <div className="bg-[#0F172A] p-6 flex justify-between items-center text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl">F</div>
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400">MGE Resource Center</div>
-            <div className="text-xl font-bold tracking-tight">INTELLIGENCE & FRAMEWORK</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="bg-blue-600 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors">Handbook</button>
-          <button className="bg-white/10 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-colors">Architecture Loop</button>
-          <button onClick={() => handleTabChange('dashboard')} className="p-2.5 hover:bg-white/10 rounded-full transition-colors ml-2"><X size={20} /></button>
-        </div>
-      </div>
-
-      <div className="p-16 border-b border-slate-100">
-        <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-[1.1] max-w-4xl">
-          The Kitchen vs. The Boardroom:<br />
-          <span className="text-[#3B82F6]">Why Your Restaurant AI Needs a Single Source of Truth</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-16 items-start">
-          <div className="md:col-span-7 space-y-6">
-            <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-600 pl-4 mb-4">THE DANGER OF ASSUMING YOU ARE RIGHT</h4>
-            <p className="text-slate-600 leading-relaxed font-medium">
-              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the <span className="text-slate-900 font-bold">"Data Trust Gap"</span>.
-            </p>
-            <p className="text-slate-600 leading-relaxed font-medium">
-              Restaurant groups are often a <span className="text-slate-900 font-bold">"Tower of Babel."</span> Operations might define "Gross Sales" differently than Finance. Marketing measures "Customer Churn" based on loyalty, while managers use reservations.
-            </p>
-          </div>
-          <div className="md:col-span-5 bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 relative shadow-sm">
-            <p className="italic text-lg text-slate-800 font-bold leading-relaxed relative z-10">
-              <span className="text-blue-600 text-3xl block mb-2">"</span>
-              When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions -- like mispricing a menu or under-calculating a shift -- and scale that chaos across your entire chain.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-16 py-8">
-        <div className="bg-[#0F172A] text-white p-12 rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl relative overflow-hidden group">
-          <div className="max-w-xl relative z-10">
-            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">The Solution</h4>
-            <h3 className="text-3xl font-black mb-8 leading-tight uppercase tracking-tight">What is the Metrics Governance Engine?</h3>
-            <p className="text-slate-300 font-medium leading-relaxed mb-8 text-sm">
-              Think of the MGE as the <span className="text-white font-bold">"Central Bank"</span> for your restaurant group's business logic. It sits between your raw data (POS, Labor, Inventory) and the tools you use to consume it.
-            </p>
-            <div className="flex gap-4">
-              <button className="bg-blue-600 hover:bg-blue-700 px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors shadow-lg shadow-blue-900/40">Govern Definitions</button>
-              <button className="bg-white/10 hover:bg-white/20 px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest border border-white/5 transition-colors">Standardize Logic</button>
-            </div>
-          </div>
-          <div className="hidden lg:block max-w-[260px] text-xs font-semibold text-slate-400 border-l border-white/10 pl-12 italic leading-relaxed relative z-10">
-            It ensures that when a CFO or an AI bot asks about "Table Turnover Rate," they are all using the exact same definition.
-          </div>
-        </div>
-      </div>
-
-      <div className="p-16 grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter">Demystifying "Certified Data" & 0-100 Score</h2>
-          <p className="text-slate-600 font-medium leading-relaxed mb-10">
-            When MGE certifies a metric like <span className="text-blue-600 font-bold">REVPASH</span>, it doesn't just check the math. It validates precisely which transaction tables the raw data originates from, the exact calculation logic, and accountability paths.
-          </p>
-          <div className="space-y-6">
-            <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-4">Governance Score Meaning:</h5>
-            <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="px-3 py-1 bg-[#F43F5E] text-white text-[9px] font-black rounded-lg shrink-0">LOW</div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">A warning label indicating the definition is contested or unclear. <span className="text-slate-900">"Use at your own risk."</span></p>
-            </div>
-            <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="px-3 py-1 bg-[#10B981] text-white text-[9px] font-black rounded-lg shrink-0">100</div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Signifies that the metric is fully standardized, audited, and safe to rely on for automated decisions.</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center">
-          <div className="w-full max-w-[340px] bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] p-12 rounded-[2.5rem] text-center shadow-2xl text-white relative group">
-            <div className="text-[11px] font-black uppercase tracking-[0.25em] text-white/70 mb-8 italic">"A confidence rating for decision-makers."</div>
-            <div className="text-9xl font-black tracking-tighter mb-4 flex items-center justify-center">0-100</div>
-            <div className="mt-8 pt-8 border-t border-white/10 flex flex-col items-center">
-              <ShieldCheck size={32} className="text-emerald-400 mb-2" />
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Certified Engine V4</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-16 bg-slate-50/50">
-        <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
-          <Info size={16} className="text-blue-600" /> Why Does This Matter?
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-12">
-          <p className="text-slate-600 font-medium leading-relaxed">
-            In a tight-margin industry, operating on opinions rather than facts is costly. Without governance, AI might advise you to cut labor hours during a peak time because it's using a <span className="text-rose-600 font-bold">flawed definition of "peak."</span>
-          </p>
-          <div className="bg-amber-50 p-10 rounded-[2.5rem] border border-amber-100 text-center flex flex-col items-center justify-center space-y-4 shadow-sm">
-            <p className="italic text-lg text-amber-950 font-bold leading-relaxed">
-              "This simulator allows you to experience the difference between navigating with a broken compass versus steering with certified, trusted intelligence."
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-16 pb-24 border-t border-slate-100">
-        <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-12 uppercase">Technical Pipeline Lifecycle</h4>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {pipelineStages.map((s, idx) => (
-            <div key={idx} className="bg-slate-50 p-8 rounded-2xl border border-slate-100 flex flex-col items-start text-left hover:bg-white hover:border-blue-500/50 hover:shadow-xl transition-all duration-300 group">
-              <span className="text-[11px] font-black text-blue-500 uppercase mb-4 tracking-widest">Stage {s.stage}</span>
-              <h5 className="font-bold text-slate-900 mb-3 text-sm">{s.title}</h5>
-              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{s.desc}</p>
-              <div className="mt-auto pt-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><ArrowUpRight size={14} /></div>
+          {helpSubTab === 'pipeline' && (
+            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-4 mb-12">
+                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">04. THE 5-STAGE PIPELINE</h2>
+              </div>
+              <div className="space-y-4 max-w-4xl">
+                {PIPELINE_STAGES.map((s, idx) => (
+                  <div key={idx} className="flex items-center gap-8 group">
+                    <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:bg-indigo-600 transition-colors">
+                      <div className="text-center">
+                        <div className="text-[8px] font-black text-white/50 uppercase tracking-widest leading-none">STAGE</div>
+                        <div className="text-2xl font-black text-white leading-none mt-1">{idx + 1}</div>
+                      </div>
+                    </div>
+                    <div className="flex-1 bg-white border border-slate-100 p-8 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all">
+                      <h4 className="text-lg font-black text-slate-900 mb-2 uppercase tracking-tight">{s.title}</h4>
+                      <p className="text-slate-500 text-sm font-medium leading-relaxed">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {helpSubTab === 'blueprints' && (
+            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-4 mb-12">
+                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">05. MODULE BLUEPRINTS</h2>
+              </div>
+              
+              <div className="bg-[#0F172A] p-12 rounded-[2.5rem] mb-16 relative overflow-hidden group">
+                <div className="relative z-10 max-w-2xl">
+                  <h3 className="text-3xl font-black text-white mb-6">TECHNICAL TEMPLATES & CSV SCHEMAS</h3>
+                  <p className="text-slate-400 font-medium mb-10 text-sm">Download the exact CSV structures required for Stage 1 Immutable Ingestion. These templates ensure your POS, platform, and bank data streams align perfectly with the MGE logic core.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {['FOOD & PRIME', 'BEVERAGE (POUR)', 'DELIVERY AUDIT', 'REVENUE RECOVERY', 'LABOR & SPLH', 'CAPACITY & REVPASH'].map((t) => (
+                      <button key={t} className="flex items-center justify-between bg-white/5 border border-white/10 p-4 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all group/btn">
+                        {t} <Download size={14} className="text-indigo-400 group-hover/btn:text-indigo-600" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+                <div className="absolute top-12 right-12 opacity-5 group-hover:scale-110 transition-transform duration-1000">
+                  <FileSpreadsheet size={300} className="text-white" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {BLUEPRINT_CARDS.map((card) => (
+                  <div key={card.id} className="bg-white p-10 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:border-indigo-400 transition-all">
+                    <div className="flex items-center justify-between mb-8">
+                      <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">{card.title}</h4>
+                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-500 transition-colors"><Info size={16} /></div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">LOGIC FORMULA</div>
+                        <div className="bg-slate-50 p-4 rounded-xl font-mono text-[11px] font-bold text-slate-900">{card.formula}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">MANDATORY CSV HEADERS</div>
+                        <div className="bg-slate-900 p-4 rounded-xl font-mono text-[10px] font-medium text-indigo-300 leading-relaxed overflow-x-auto whitespace-nowrap no-scrollbar">{card.headers}</div>
+                      </div>
+                      <div className="pt-4 border-t border-slate-50">
+                        <p className="text-[10px] font-bold text-slate-500 leading-relaxed italic">{card.note}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderModuleForm = (module: ModuleType) => {
-    let title = ""; let icon = <Database />;
-    switch (module) {
-      case ModuleType.REVENUE_RECOVERY: title = "Revenue Recovery"; icon = <DollarSign />; break;
-      case ModuleType.DELIVERY_RECON: title = "Delivery Reconciliation"; icon = <Truck />; break;
-      case ModuleType.CC_AUDIT: title = "Credit Card Audit"; icon = <CreditCard />; break;
-      case ModuleType.OPERATING_COSTS: title = "Food Cost Intelligence"; icon = <ChefHat />; break;
-    }
     return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white p-10 rounded-3xl border border-slate-200 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600" />
-            <div className="mb-10 flex items-center gap-4">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">{icon}</div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-                <p className="text-slate-500 mt-1 text-sm">Direct truth-table entry for specialized simulation vectors.</p>
-              </div>
-            </div>
-            <form className="space-y-6" onSubmit={e => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              runSimulation(module, Object.fromEntries(formData.entries()));
-              handleTabChange('dashboard');
-            }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {module === ModuleType.REVENUE_RECOVERY && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Open Check Count</label>
-                      <input name="open_checks" required type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Closed Check Count</label>
-                      <input name="closed_checks" required type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0" />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Average Check Payout ($)</label>
-                      <input name="average_check" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                  </>
-                )}
-                {module === ModuleType.DELIVERY_RECON && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">POS Sales ($)</label>
-                      <input name="pos_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Sales ($)</label>
-                      <input name="platform_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Fees ($)</label>
-                      <input name="platform_fees" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verified Bank Deposit ($)</label>
-                      <input name="bank_deposit" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                  </>
-                )}
-                {module === ModuleType.CC_AUDIT && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Batch Amount ($)</label>
-                      <input name="amount" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Processor Fee Charged ($)</label>
-                      <input name="processor_fee" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agreed Interchange Rate (%)</label>
-                      <input name="interchange_rate" defaultValue="2.5%" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                  </>
-                )}
-                {module === ModuleType.OPERATING_COSTS && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Beginning Inventory ($)</label>
-                      <input name="beginning_inventory" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Purchases ($)</label>
-                      <input name="purchases" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ending Inventory ($)</label>
-                      <input name="ending_inventory" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Food Sales ($)</label>
-                      <input name="food_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
-                    </div>
-                  </>
-                )}
-              </div>
-              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
-                Seal Calculation & Update Dashboard
-              </button>
-            </form>
-          </div>
-          <div className="bg-slate-50 p-10 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center space-y-6 h-full">
-            <Upload size={40} className="text-indigo-600" />
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl relative overflow-hidden">
+          <div className="flex items-center gap-4 mb-10">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white"><Zap size={24} /></div>
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Batch Ledger Ingestion</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto mt-2 font-semibold">Upload multiple period audit points using standard CSV schemas.</p>
-            </div>
-            <div className="flex flex-col gap-3 w-full max-w-xs">
-              <label className="cursor-pointer bg-white border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs text-slate-600 shadow-sm transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
-                <FileSpreadsheet size={18} /> {csvUploadLoading ? 'Ingesting...' : 'Select CSV'}
-                <input type="file" accept=".csv" className="hidden" onChange={(e) => handleCSVUpload(e, module)} disabled={csvUploadLoading} />
-              </label>
-              <button onClick={() => downloadTemplate(module)} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline flex items-center justify-center gap-1.5 opacity-60">
-                <Download size={12} /> Get Template
-              </button>
+              <h2 className="text-2xl font-black text-slate-900 capitalize tracking-tight">{module.replace('_', ' ')} Simulation</h2>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Truth Table V4 Engine</p>
             </div>
           </div>
+          <form className="space-y-8" onSubmit={e => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            runSimulation(module, Object.fromEntries(formData.entries()));
+            handleTabChange('dashboard');
+          }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {module === ModuleType.REVENUE_RECOVERY ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Open Checks</label>
+                    <input name="open" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Closed Checks</label>
+                    <input name="closed" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0" />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Average Check Value ($)</label>
+                    <input name="avg" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">POS Sales Gross</label>
+                    <input name="pos" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Statement Net</label>
+                    <input name="bank" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
+                  </div>
+                </>
+              )}
+            </div>
+            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98] uppercase text-xs tracking-widest">Process Logic Pipeline</button>
+          </form>
         </div>
       </div>
     );
   };
 
   const renderDashboard = () => (
-    <div id="printable-content" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-hidden">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Executive Summary</h2>
-          <p className="text-slate-500 text-sm">Audit Period: {dateRange.start} -- {dateRange.end}</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-            <Printer size={16} /> Print Report
-          </button>
-          <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-shadow shadow-md">
-            <Download size={16} /> Download CSV Ledger
-          </button>
-        </div>
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {[
+          { label: 'Recoverable Capital', val: `$${dashboard.performance.totalFoundMoney.toLocaleString()}`, color: 'text-emerald-500' },
+          { label: 'Certification Rate', val: dashboard.performance.certificationRate, color: 'text-indigo-500' },
+          { label: 'Trust Index', val: dashboard.performance.averageTrustScore, color: 'text-slate-900' },
+          { label: 'AI Readiness', val: dashboard.performance.aiReadinessScore, color: 'text-slate-900' }
+        ].map((stat, idx) => (
+          <div key={idx} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{stat.label}</div>
+            <div className={`text-3xl font-black ${stat.color} tracking-tight group-hover:scale-105 transition-transform origin-left`}>{stat.val}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl"><DollarSign size={24} /></div>
-            <div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recoverable Capital</div>
-              <div className="text-2xl font-bold text-slate-900">${dashboard.performance.totalFoundMoney.toLocaleString()}</div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm h-[500px] flex flex-col">
+          <div className="flex items-center justify-between mb-10">
+            <h3 className="font-black text-slate-900 uppercase tracking-tighter text-lg flex items-center gap-2">
+              <Activity className="text-indigo-500" size={20} /> Variance Timeline
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recovered Revenue</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-bold text-emerald-600">
-            <TrendingUp size={14} /> {dashboard.performance.comparisonDeltas[0].deltaPercent}% vs Last period
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={metrics.map((m, i) => ({ name: i, value: m.foundMoneyAmount }))}>
+                <defs>
+                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: 'none', color: '#fff' }}
+                  itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}
+                />
+                <Area type="monotone" dataKey="value" stroke="#4f46e5" fillOpacity={1} fill="url(#colorVal)" strokeWidth={4} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><CheckCircle2 size={24} /></div>
-            <div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certification</div>
-              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.certificationRate}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl"><ShieldCheck size={24} /></div>
-            <div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trust Index</div>
-              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.averageTrustScore}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl"><BrainCircuit size={24} /></div>
-            <div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Readiness</div>
-              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.aiReadinessScore}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm h-[400px]">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-8 uppercase tracking-widest text-xs">
-            <Activity size={16} className="text-indigo-600" /> Variance Timeline
-          </h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={metrics.map((m) => ({ 
-              name: new Date(m.calculationDate).toLocaleDateString(), 
-              value: m.foundMoneyAmount, 
-            }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} strokeWidth={3} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="bg-slate-900 p-8 rounded-2xl text-white shadow-xl border border-slate-800">
-          <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-indigo-400">
-            <BrainCircuit size={20} /> Executive Insights
-          </h3>
-          <div className="space-y-4">
-            {isGeneratingInsights ? (
-              <div className="flex flex-col gap-3 py-16 text-center animate-pulse">
-                <Activity size={24} className="animate-spin text-indigo-500 mx-auto" />
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Processing...</p>
-              </div>
-            ) : insights.length > 0 ? (
-              insights.map((insight, idx) => (
-                <div key={idx} className="flex gap-4 text-sm p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">0{idx+1}</div>
-                  <p className="text-slate-300 text-xs leading-relaxed font-medium">{insight}</p>
+        <div className="bg-[#0F172A] p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="font-black text-xl mb-8 flex items-center gap-3 text-indigo-400 uppercase tracking-tighter"><BrainCircuit size={28} /> AI Strategy</h3>
+            <div className="space-y-6">
+              {insights.length > 0 ? insights.map((insight, idx) => (
+                <div key={idx} className="flex gap-5 p-6 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-default">
+                  <div className="w-6 h-6 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0 font-black text-[10px]">{idx + 1}</div>
+                  <p className="text-slate-300 text-xs leading-relaxed font-semibold">{insight}</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-slate-500 text-center py-12 italic text-sm">Run simulation for recommendations.</div>
-            )}
+              )) : (
+                <div className="text-center py-20 space-y-4">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6"><Sparkles size={24} className="text-slate-700" /></div>
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Waiting for simulation data...</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2 uppercase tracking-widest text-xs">
-            <FileText size={16} className="text-indigo-600" /> Transactional Ledger
-          </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <th className="px-6 py-4">Metric ID</th>
-                <th className="px-6 py-4">Module</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Trust</th>
-                <th className="px-6 py-4 text-center">Compliance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {dashboard.recentMetrics.map((m) => (
-                <tr key={m.metricId} className="hover:bg-slate-50 transition-colors text-xs">
-                  <td className="px-6 py-4 font-mono text-indigo-600 font-bold">{m.metricId}</td>
-                  <td className="px-6 py-4 capitalize">{m.module.replace('_', ' ')}</td>
-                  <td className="px-6 py-4 font-black">${m.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4 font-bold">{m.trustScore}%</td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center">
-                      <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${m.isCertified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                        {m.isCertified ? 'CERTIFIED' : 'REVIEW'}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[100px] rounded-full" />
         </div>
       </div>
     </div>
   );
 
   const renderContent = () => {
+    if (!user && !showLanding) {
+      return (
+        <div className="max-w-md mx-auto bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-500">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-xl">F</div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Simulator Identity</h2>
+            <p className="text-slate-400 text-xs font-semibold mt-2">Access the MGE V4 Intelligence Core</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input type="text" placeholder="First Name" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, firstName: e.target.value})} required />
+            <input type="email" placeholder="Business Email" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, email: e.target.value})} required />
+            <input type="password" placeholder="Access Code" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, password: e.target.value})} required />
+            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-[0.98] uppercase text-xs tracking-widest mt-4">Initialize MGE Session</button>
+          </form>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
-      case 'help': return renderHelp();
+      case 'help': return renderHelpPortal();
       case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
       case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
-      case 'audit': return renderModuleForm(ModuleType.CC_AUDIT);
       case 'registry':
         return (
-          <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in">
-            <h2 className="text-xl font-bold text-slate-800 mb-8 flex items-center gap-3 uppercase tracking-tighter">
-              <Database size={24} className="text-indigo-600" /> KPI Governance Registry
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-sm animate-in fade-in duration-500">
+            <div className="flex items-center gap-4 mb-12">
+              <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><Database size={24} /></div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">KPI Registry <span className="text-slate-300 font-bold">V4</span></h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {formulas.map(f => (
-                <div key={f.formulaId} className="p-6 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors group">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase">{f.module.replace('_', ' ')}</span>
-                    <span className="text-[10px] font-bold text-slate-400">VER {f.version}</span>
+                <div key={f.formulaId} className="p-8 border border-slate-100 rounded-[2rem] hover:bg-slate-50 transition-all group hover:shadow-xl hover:shadow-slate-200/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="font-black text-slate-900 text-base uppercase tracking-tight">{f.name}</h4>
+                    <div className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><CheckCircle size={14} /></div>
                   </div>
-                  <h4 className="font-bold text-slate-900 text-sm mb-1">{f.name}</h4>
-                  <p className="text-xs text-slate-500 mb-4 line-clamp-2 leading-relaxed">{f.description}</p>
-                  <code className="block p-3 bg-slate-900 text-indigo-300 rounded-xl text-[10px] font-mono border border-slate-800">{f.expression}</code>
+                  <code className="block p-5 bg-slate-900 text-indigo-300 rounded-2xl text-[11px] font-mono leading-relaxed shadow-inner">{f.expression}</code>
+                  <p className="mt-6 text-xs text-slate-500 font-medium leading-relaxed">{f.description}</p>
                 </div>
               ))}
             </div>
@@ -923,65 +712,108 @@ const App: React.FC = () => {
         );
       case 'vault':
         return (
-          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in">
-             <div className={`p-16 rounded-[3rem] border-2 transition-all flex flex-col items-center text-center space-y-8 ${isVaultLocked ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'} shadow-2xl`}>
-                <div className="p-6 bg-white rounded-[2rem] shadow-sm">
-                  {isVaultLocked ? <Lock size={64} className="text-emerald-600" /> : <Unlock size={64} className="text-amber-600" />}
-                </div>
-                <div>
-                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
-                  <p className="text-slate-600 mt-4 max-w-md font-medium text-sm leading-relaxed">
-                    {isVaultLocked 
-                      ? "The period vault is cryptographically sealed. Audit trails are now immutable."
-                      : "The period vault is open. Locking ensures audit-grade data certification."}
-                  </p>
-                </div>
-                <button onClick={() => setIsVaultLocked(!isVaultLocked)} className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${isVaultLocked ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white'}`}>
-                  {isVaultLocked ? 'Release Audit Seal' : 'Lock & Seal Period Vault'}
-                </button>
-             </div>
-          </div>
-        );
-      case 'history':
-        return (
-          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 text-center animate-in fade-in shadow-xl">
-            <div className="p-6 bg-slate-50 rounded-full inline-block mb-6">
-              <HistoryIcon size={48} className="text-slate-400" />
+          <div className="max-w-4xl mx-auto py-24 rounded-[4rem] border-4 border-dashed border-amber-200 bg-amber-50/50 flex flex-col items-center text-center space-y-10 animate-in zoom-in-95 duration-700">
+            <div className="w-32 h-32 bg-white rounded-[3rem] shadow-2xl flex items-center justify-center border border-amber-100 text-amber-600">
+              {isVaultLocked ? <Lock size={64} /> : <Unlock size={64} className="animate-pulse" />}
             </div>
-            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest">System Integrity Log</h2>
-            <div className="mt-12 max-w-2xl mx-auto space-y-3">
-              {metrics.length > 0 ? metrics.map((m) => (
-                <div key={m.metricId} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 text-left shadow-sm">
-                  <div className="flex gap-4 items-center">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <div>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {m.metricId}</div>
-                      <div className="text-sm font-bold text-slate-700">{m.module.replace('_', ' ').toUpperCase()}</div>
-                    </div>
-                  </div>
-                  <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full">{new Date(m.calculationDate).toLocaleTimeString()}</div>
-                </div>
-              )) : (
-                <div className="py-20 text-slate-300 italic font-medium">No activity recorded.</div>
-              )}
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
+              <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.2em] max-w-sm mx-auto leading-relaxed">Immutable storage for period-certified ledgers and governing KPIs.</p>
             </div>
+            <button 
+              onClick={() => setIsVaultLocked(!isVaultLocked)} 
+              className={`px-16 py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 ${
+                isVaultLocked ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-slate-900 text-white hover:bg-slate-800'
+              }`}
+            >
+              {isVaultLocked ? 'Unlock Period Vault' : 'Lock & Certify Period'}
+            </button>
           </div>
         );
       default: return renderDashboard();
     }
   };
 
+  if (isAuthenticating) return null;
+
+  if (showLanding) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] text-[#0F172A] font-sans selection:bg-indigo-100 animate-in fade-in duration-700">
+        <nav className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-12 flex items-center justify-between border-b border-slate-100">
+          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setShowLanding(true)}>
+            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl group-hover:bg-indigo-600 transition-colors shadow-lg">M</div>
+            <div className="flex flex-col leading-none">
+              <span className="font-black text-sm tracking-tight uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
+              <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">Simulator V4.0</span>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('registry'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Layers size={14} /> Logic Core</button>
+            <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('dashboard'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Zap size={14} /> Recovery</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-indigo-500"><BookOpen size={14} /> Admin Portal</button>
+          </div>
+          <button 
+            onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
+            className="bg-slate-900 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-indigo-600 transition-all"
+          >
+            {user ? 'Enter App' : 'Get Access'}
+          </button>
+        </nav>
+
+        <main className="pt-40 pb-32 container mx-auto px-12 max-w-7xl">
+          <div className="text-center mb-32 space-y-12">
+            <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-sm animate-bounce">
+              <Sparkles size={14} /> Deterministic Truth Engine
+            </div>
+            <h1 className="text-7xl md:text-[9rem] font-black mb-12 tracking-tighter leading-[0.85]">
+              Certify Profit. <br />
+              <span className="text-indigo-600">Automate Recovery.</span>
+            </h1>
+            <p className="text-slate-500 text-xl max-w-3xl mx-auto leading-relaxed font-medium">
+              The MGE Simulator quantifies operational leakage through deterministic 5-stage governance models, turning fragmented data into audit-grade financial ledgers.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-6 pt-10">
+              <button 
+                onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
+                className="bg-slate-900 text-white px-12 py-6 rounded-[1.5rem] font-black text-sm flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-indigo-600 transition-all active:scale-95 group"
+              >
+                Start MGE Emulator <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+              </button>
+              <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="bg-white border-2 border-slate-100 px-12 py-6 rounded-[1.5rem] font-black text-sm text-slate-600 hover:bg-slate-50 transition-all shadow-xl shadow-slate-200/20">
+                MGE Architecture Docs
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {[
+              { icon: Shield, title: 'Data Integrity', desc: 'Immutable ingestion of POS and Bank streams ensure zero-drift truth.', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+              { icon: Zap, title: 'Rapid Recovery', desc: 'Identify variance patterns A-E in minutes, not monthly close cycles.', color: 'text-indigo-500', bg: 'bg-indigo-50' },
+              { icon: BrainCircuit, title: 'AI Governance', desc: 'Feed LLMs with certified metrics, eliminating hallucinations in strategy.', color: 'text-amber-500', bg: 'bg-amber-50' }
+            ].map((feature, i) => (
+              <div key={i} className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group cursor-default">
+                <div className={`w-16 h-16 ${feature.bg} ${feature.color} rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform`}><feature.icon size={32} /></div>
+                <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">{feature.title}</h3>
+                <p className="text-slate-500 font-medium leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <Layout 
       activeTab={activeTab} 
       setActiveTab={handleTabChange} 
-      userName={user?.firstName || ''} 
+      userName={user?.firstName || 'Guest'} 
       onLogout={handleLogout} 
       dateRange={dateRange} 
       setDateRange={setDateRange}
       onBack={handleBack}
       onGoHome={handleGoHome}
-      canGoBack={navigationHistory.length > 0}
+      canGoBack={navigationHistory.length > 0 || !showLanding}
     >
       {renderContent()}
     </Layout>
