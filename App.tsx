@@ -54,7 +54,10 @@ import {
   ThumbsUp,
   Wine,
   BarChart3,
-  Lightbulb
+  Lightbulb,
+  Terminal,
+  FileSearch,
+  ExternalLink
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -70,6 +73,18 @@ import {
 } from './types.ts';
 import { STANDARD_FORMULAS, CSV_TEMPLATES, GLOSSARY_LOGIC, PIPELINE_STAGES, BLUEPRINT_CARDS, FAQ_DATA } from './constants.tsx';
 import { geminiService } from './services/geminiService.ts';
+
+const GUEST_USER: SimulatorUser = {
+  userId: 'GUEST_001',
+  firstName: 'Guest',
+  lastName: 'Operator',
+  userType: UserRole.C_LEVEL,
+  businessEmail: 'operator@fohboh.com',
+  company: 'Truth Table Rest',
+  createdAt: new Date().toISOString(),
+  lastLogin: new Date().toISOString(),
+  simulationCount: 0
+};
 
 const App: React.FC = () => {
   // App State
@@ -117,12 +132,16 @@ const App: React.FC = () => {
 
   // Ops Cert State
   const [opsCertActiveTab, setOpsCertActiveTab] = useState<'food' | 'bev' | 'prime'>('food');
+  const [primeSalesBasis, setPrimeSalesBasis] = useState<'net' | 'gross'>('net');
 
   // Session Management
   useEffect(() => {
     const savedUser = localStorage.getItem('fohboh_user_session');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+    } else {
+      // Auto-set guest user to remove identity box requirement
+      setUser(GUEST_USER);
     }
     setIsAuthenticating(false);
   }, []);
@@ -190,11 +209,12 @@ const App: React.FC = () => {
       value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
     } else if (module === ModuleType.OPERATIONS_CERTIFICATION) {
       if (opsCertActiveTab === 'food') {
-        kpiId = 'COGS_TOTAL';
+        kpiId = 'FOOD_COST_PCT';
         const beg = parseFloat(inputData.V_FOOD_BEGINNING_INVENTORY || 0);
         const purch = parseFloat(inputData.V_FOOD_PURCHASES || 0);
         const end = parseFloat(inputData.V_FOOD_ENDING_INVENTORY || 0);
-        value = (beg + purch - end);
+        const sales = parseFloat(inputData.V_FOOD_SALES || 1);
+        value = ((beg + purch - end) / sales) * 100;
       } else if (opsCertActiveTab === 'bev') {
         kpiId = 'BEVERAGE_COST_PCT';
         const beg = parseFloat(inputData.V_BEV_BEGINNING_INVENTORY || 0);
@@ -208,7 +228,7 @@ const App: React.FC = () => {
         const bev = parseFloat(inputData.V_TOTAL_BEV_COST || 0);
         const hourly = parseFloat(inputData.V_LABOR_HOURLY_WAGES || 0);
         const salary = parseFloat(inputData.V_LABOR_SALARY_ALLOCATION || 0);
-        const sales = parseFloat(inputData.V_NET_SALES || 1);
+        const sales = parseFloat(inputData.V_PRIME_SALES_BASIS || 1);
         value = ((food + bev + hourly + salary) / sales) * 100;
       }
     } else {
@@ -792,6 +812,11 @@ const App: React.FC = () => {
                     <input name="V_FOOD_ENDING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
                     <p className="text-[9px] text-slate-400 font-medium">Physical count ending inventory.</p>
                   </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">V_FOOD_SALES</label>
+                    <input name="V_FOOD_SALES" required type="number" step="0.01" className="w-full p-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-slate-900" placeholder="Total Food Sales" />
+                    <p className="text-[9px] text-slate-400 font-medium">Net food sales for period.</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -821,13 +846,37 @@ const App: React.FC = () => {
 
             {opsCertActiveTab === 'prime' && (
               <div className="space-y-10 animate-in fade-in duration-300">
-                <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] mb-12 flex flex-col md:flex-row items-center gap-10">
-                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-xl shrink-0"><Calculator size={32} /></div>
-                  <div className="space-y-2">
-                    <h4 className="text-xl font-black text-indigo-900 uppercase tracking-tighter leading-none">Unified Prime Logic</h4>
-                    <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">Prime Cost = Food + Bev + Hourly + Salary</p>
+                <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] mb-12 flex flex-col md:flex-row items-center justify-between gap-10">
+                  <div className="flex items-center gap-10">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-xl shrink-0"><Calculator size={32} /></div>
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-black text-indigo-900 uppercase tracking-tighter leading-none">Unified Prime Logic</h4>
+                      <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">Prime Cost = Food + Bev + Hourly + Salary</p>
+                    </div>
+                  </div>
+                  
+                  {/* Sales Basis Toggle */}
+                  <div className="flex flex-col gap-3">
+                    <span className="text-[9px] font-black text-indigo-900 uppercase tracking-[0.2em] text-center md:text-left">Analysis Basis</span>
+                    <div className="flex p-1.5 bg-indigo-100/50 rounded-2xl border border-indigo-200">
+                      <button 
+                        type="button"
+                        onClick={() => setPrimeSalesBasis('net')}
+                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${primeSalesBasis === 'net' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400 hover:text-indigo-600'}`}
+                      >
+                        Net Sales
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setPrimeSalesBasis('gross')}
+                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${primeSalesBasis === 'gross' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400 hover:text-indigo-600'}`}
+                      >
+                        Gross Sales
+                      </button>
+                    </div>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_TOTAL_FOOD_COST (OUTPUT)</label>
@@ -846,8 +895,10 @@ const App: React.FC = () => {
                     <input name="V_LABOR_SALARY_ALLOCATION" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">V_NET_SALES</label>
-                    <input name="V_NET_SALES" required type="number" step="0.01" className="w-full p-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold" placeholder="Total Store Net Sales" />
+                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                      {primeSalesBasis === 'net' ? 'V_NET_SALES' : 'V_GROSS_SALES'}
+                    </label>
+                    <input name="V_PRIME_SALES_BASIS" required type="number" step="0.01" className="w-full p-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold" placeholder={`Total Store ${primeSalesBasis === 'net' ? 'Net' : 'Gross'} Sales`} />
                   </div>
                 </div>
               </div>
@@ -933,23 +984,7 @@ const App: React.FC = () => {
   );
 
   const renderContent = () => {
-    if (!user && !showLanding) {
-      return (
-        <div className="max-w-md mx-auto bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-500">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-xl">F</div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Simulator Identity</h2>
-            <p className="text-slate-400 text-xs font-semibold mt-2">Access the MGE V4 Intelligence Core</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="First Name" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, firstName: e.target.value})} required />
-            <input type="email" placeholder="Business Email" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, email: e.target.value})} required />
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl mt-4">Initialize MGE Session</button>
-          </form>
-        </div>
-      );
-    }
-
+    // Identity box removed as per user request to streamline simulator access
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
       case 'help': return renderHelpPortal();
@@ -983,45 +1018,173 @@ const App: React.FC = () => {
 
   if (showLanding) {
     return (
-      <div className="min-h-screen bg-[#FDFDFD] text-[#0F172A] font-sans selection:bg-indigo-100 animate-in fade-in duration-700">
-        <nav className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-12 flex items-center justify-between border-b border-slate-100">
+      <div className="min-h-screen bg-[#FDFDFD] text-[#0F172A] font-sans selection:bg-indigo-100 animate-in fade-in duration-700 flex flex-col">
+        {/* Navigation Header */}
+        <nav className="fixed top-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl z-50 px-12 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setShowLanding(true)}>
-            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl group-hover:bg-indigo-600 transition-colors shadow-lg">M</div>
-            <span className="font-black text-sm tracking-tight uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
+            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl group-hover:bg-indigo-600 transition-colors shadow-xl">M</div>
+            <span className="font-black text-lg tracking-tighter uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
           </div>
-          <div className="hidden md:flex items-center gap-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('registry'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Layers size={14} /> Logic Core</button>
-            <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('dashboard'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Zap size={14} /> Recovery</button>
-            <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-indigo-500"><MessageCircleQuestion size={14} /> FAQ Center</button>
-            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 text-slate-400"><BookOpen size={14} /> Admin Portal</button>
+          
+          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <button onClick={() => { setShowLanding(false); handleTabChange('registry'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50"><Layers size={14} /> Logic Core</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('dashboard'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50"><Zap size={14} /> Recovery</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="hover:text-indigo-600 transition-colors flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50"><MessageCircleQuestion size={14} /> FAQ Center</button>
+            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="text-indigo-600 font-black flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-indigo-50"><BookOpen size={14} /> Help Center</button>
           </div>
+
           <button 
-            onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
-            className="bg-slate-900 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-indigo-600 transition-all"
+            onClick={() => { setShowLanding(false); setActiveTab('dashboard'); }}
+            className="bg-slate-900 text-white px-10 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-[0_15px_35px_rgba(0,0,0,0.15)] hover:bg-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            {user ? 'Enter App' : 'Get Access'}
+            Launch Simulator
           </button>
         </nav>
 
-        <main className="pt-40 pb-32 container mx-auto px-12 max-w-7xl">
-          <div className="text-center mb-32 space-y-12">
-            <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-sm animate-bounce">
-              <Lightbulb size={14} /> Deterministic Truth Engine
+        {/* Main Hero & Bentobox Section */}
+        <main className="pt-40 pb-20 flex-1 container mx-auto px-12 max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-8">
+            {/* Primary Action Card */}
+            <div className="md:col-span-2 md:row-span-2 bg-[#0F172A] rounded-[3.5rem] p-16 flex flex-col justify-center text-white relative overflow-hidden group shadow-2xl">
+              <div className="relative z-10 space-y-10">
+                <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-indigo-500/20 text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/30">
+                  <Sparkles size={14} /> Deterministic Truth Engine V4
+                </div>
+                <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85]">
+                  Certify Profit. <br />
+                  <span className="text-indigo-400 italic">Reclaim Loss.</span>
+                </h1>
+                <p className="text-slate-400 text-sm font-medium max-w-sm leading-relaxed">
+                  The industry's first metrics governance engine designed to transform operational noise into certified recovery.
+                </p>
+                <button 
+                  onClick={() => { setShowLanding(false); setActiveTab('dashboard'); }}
+                  className="bg-white text-slate-900 px-12 py-6 rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center gap-4 hover:bg-indigo-400 hover:text-white transition-all w-fit shadow-xl"
+                >
+                  Launch MGE Core <ArrowRight size={20} />
+                </button>
+              </div>
+              <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-600/20 blur-[120px] rounded-full group-hover:bg-indigo-600/30 transition-colors" />
+              <div className="absolute top-10 right-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Shield size={200} strokeWidth={1} />
+              </div>
             </div>
-            <h1 className="text-7xl md:text-[9rem] font-black mb-12 tracking-tighter leading-[0.85]">
-              Certify Profit. <br />
-              <span className="text-indigo-600">Automate Recovery.</span>
-            </h1>
-            <div className="flex flex-wrap items-center justify-center gap-6 pt-10">
-              <button 
-                onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
-                className="bg-slate-900 text-white px-12 py-6 rounded-[1.5rem] font-black text-sm flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-indigo-600 transition-all group"
-              >
-                Start MGE Simulator <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
-              </button>
+
+            {/* Registry Quick Link */}
+            <div className="md:col-span-1 bg-white border border-slate-100 rounded-[3rem] p-10 flex flex-col justify-between hover:shadow-2xl transition-all cursor-pointer group shadow-sm" onClick={() => { setShowLanding(false); handleTabChange('registry'); }}>
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
+                <Database size={28} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">KPI Registry</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">50 Deterministic Formulas</p>
+              </div>
+            </div>
+
+            {/* Admin/Help Quick Link */}
+            <div className="md:col-span-1 bg-indigo-600 rounded-[3rem] p-10 flex flex-col justify-between text-white hover:shadow-2xl transition-all cursor-pointer group shadow-xl" onClick={() => { setShowLanding(false); handleTabChange('help'); }}>
+              <div className="w-16 h-16 bg-white/20 text-white rounded-3xl flex items-center justify-center mb-10 group-hover:rotate-12 transition-transform">
+                <Lock size={28} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Admin Portal</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Logic Docs & Security</p>
+              </div>
+            </div>
+
+            {/* Simulated Live Analytics Card */}
+            <div className="md:col-span-2 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] p-10 flex items-center gap-10 hover:border-indigo-400 transition-all cursor-default overflow-hidden relative group">
+              <div className="relative z-10 shrink-0">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">System Accuracy</div>
+                <div className="text-6xl font-black text-slate-900 tracking-tighter">99.8%</div>
+                <div className="mt-4 flex items-center gap-2 text-emerald-500 font-black text-[9px] uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full w-fit">
+                  <TrendingUp size={12} /> Audit Level
+                </div>
+              </div>
+              <div className="flex-1 opacity-20 group-hover:opacity-40 transition-opacity">
+                <ResponsiveContainer width="100%" height={100}>
+                  <AreaChart data={[{v:10},{v:40},{v:25},{v:60},{v:45},{v:90}]}>
+                    <Area type="monotone" dataKey="v" stroke="#4f46e5" fill="#4f46e5" strokeWidth={4} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Knowledge Base Card */}
+            <div className="bg-white border border-slate-100 rounded-[3rem] p-10 flex flex-col justify-between hover:shadow-2xl transition-all cursor-pointer group shadow-sm" onClick={() => { setShowLanding(false); handleTabChange('faq'); }}>
+              <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mb-10 group-hover:-translate-y-2 transition-transform">
+                <MessageCircleQuestion size={28} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">FAQ Hub</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Support Architecture</p>
+              </div>
+            </div>
+
+            {/* Recovery Module Card */}
+            <div className="bg-slate-900 rounded-[3rem] p-10 flex flex-col justify-between text-white hover:shadow-2xl transition-all cursor-pointer group shadow-xl" onClick={() => { setShowLanding(false); handleTabChange('dashboard'); }}>
+              <div className="w-16 h-16 bg-indigo-500 text-white rounded-3xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
+                <Zap size={28} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Recovery</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Variance Resolution</p>
+              </div>
             </div>
           </div>
         </main>
+
+        {/* Restore Landing Footer Navigation */}
+        <footer className="bg-white border-t border-slate-100 py-16 px-12">
+          <div className="container mx-auto max-w-7xl">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
+              <div className="col-span-2 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl">M</div>
+                  <span className="font-black text-sm tracking-tight uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
+                </div>
+                <p className="text-slate-400 text-xs font-medium max-w-xs leading-relaxed">
+                  The Gold Standard in restaurant metrics governance, reconciliation, and revenue recovery.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Core Modules</h4>
+                <div className="flex flex-col gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <button onClick={() => { setShowLanding(false); handleTabChange('dashboard'); }} className="hover:text-indigo-600 text-left">Executive View</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('registry'); }} className="hover:text-indigo-600 text-left">KPI Registry</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('operations'); }} className="hover:text-indigo-600 text-left">Operations Core</button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Resolution</h4>
+                <div className="flex flex-col gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <button onClick={() => { setShowLanding(false); handleTabChange('recovery'); }} className="hover:text-indigo-600 text-left">Revenue Recovery</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('delivery'); }} className="hover:text-indigo-600 text-left">Delivery Recon</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('vault'); }} className="hover:text-indigo-600 text-left">Certified Vault</button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Documentation</h4>
+                <div className="flex flex-col gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="hover:text-indigo-600 text-left flex items-center gap-2"><BookOpen size={12}/> Admin Portal</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="hover:text-indigo-600 text-left flex items-center gap-2"><MessageCircleQuestion size={12}/> FAQ Hub</button>
+                  <a href="#" className="hover:text-indigo-600 flex items-center gap-2">Legal Terms <ExternalLink size={12}/></a>
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">© 2026 FohBoh MGE Simulator | Truth Table V4 Edition</span>
+              <div className="flex items-center gap-6 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                <div className="flex items-center gap-2"><Terminal size={12}/> Deterministic AI Pipeline</div>
+                <div className="flex items-center gap-2"><ShieldCheck size={12}/> 256-Bit Vault Encryption</div>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     );
   }
