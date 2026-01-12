@@ -64,6 +64,7 @@ const App: React.FC = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
   const [formulas, setFormulas] = useState<KPIFormula[]>(STANDARD_FORMULAS);
   const [metrics, setMetrics] = useState<CertifiedMetric[]>([]);
   const [isVaultLocked, setIsVaultLocked] = useState(false);
@@ -102,6 +103,21 @@ const App: React.FC = () => {
     setIsAuthenticating(false);
   }, []);
 
+  const handleTabChange = (newTab: string) => {
+    if (newTab !== activeTab) {
+      setNavigationHistory(prev => [...prev, activeTab]);
+      setActiveTab(newTab);
+    }
+  };
+
+  const handleBack = () => {
+    if (navigationHistory.length > 0) {
+      const prevTab = navigationHistory[navigationHistory.length - 1];
+      setNavigationHistory(prev => prev.slice(0, -1));
+      setActiveTab(prevTab);
+    }
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -120,6 +136,8 @@ const App: React.FC = () => {
       setUser(newUser);
       localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
       setShowLanding(false);
+      setNavigationHistory([]); // Reset history on login
+      setActiveTab('dashboard');
     } else {
       setAuthError('Invalid credentials. Please fill all fields.');
     }
@@ -129,6 +147,7 @@ const App: React.FC = () => {
     setUser(null);
     localStorage.removeItem('fohboh_user_session');
     setActiveTab('dashboard');
+    setNavigationHistory([]);
     setOnboardingStep(1);
     setShowLanding(true);
   };
@@ -305,7 +324,7 @@ const App: React.FC = () => {
           });
           runSimulation(module, inputData);
         });
-        setActiveTab('dashboard');
+        handleTabChange('dashboard');
       } catch (err) {
         alert("Error parsing CSV. Please use the provided template.");
       } finally {
@@ -365,7 +384,7 @@ const App: React.FC = () => {
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Layers size={14} /> Modules</button>
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><Zap size={14} /> Use Cases</button>
           <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><BookOpen size={14} /> Logic Docs</button>
-          <button onClick={() => { setShowLanding(false); setActiveTab('help'); }} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
+          <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="flex items-center gap-2 hover:text-indigo-600 transition-colors"><HelpCircle size={14} /> Help</button>
         </div>
       </nav>
 
@@ -389,7 +408,7 @@ const App: React.FC = () => {
             >
               Start MGE Emulator <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button onClick={() => { setShowLanding(false); setActiveTab('help'); }} className="bg-white border border-slate-200 px-10 py-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <button onClick={() => { setShowLanding(false); handleTabChange('help'); }} className="bg-white border border-slate-200 px-10 py-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
               Explore Case Studies
             </button>
           </div>
@@ -486,7 +505,7 @@ const App: React.FC = () => {
         <div className="flex items-center gap-3">
           <button className="bg-blue-600 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors">Handbook</button>
           <button className="bg-white/10 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-colors">Architecture Loop</button>
-          <button onClick={() => setActiveTab('dashboard')} className="p-2.5 hover:bg-white/10 rounded-full transition-colors ml-2"><X size={20} /></button>
+          <button onClick={() => handleTabChange('dashboard')} className="p-2.5 hover:bg-white/10 rounded-full transition-colors ml-2"><X size={20} /></button>
         </div>
       </div>
 
@@ -626,7 +645,7 @@ const App: React.FC = () => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               runSimulation(module, Object.fromEntries(formData.entries()));
-              setActiveTab('dashboard');
+              handleTabChange('dashboard');
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {module === ModuleType.REVENUE_RECOVERY && (
@@ -952,7 +971,16 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} userName={user?.firstName || ''} onLogout={handleLogout} dateRange={dateRange} setDateRange={setDateRange}>
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={handleTabChange} 
+      userName={user?.firstName || ''} 
+      onLogout={handleLogout} 
+      dateRange={dateRange} 
+      setDateRange={setDateRange}
+      onBack={handleBack}
+      canGoBack={navigationHistory.length > 0}
+    >
       {renderContent()}
     </Layout>
   );

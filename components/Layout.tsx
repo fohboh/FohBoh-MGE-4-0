@@ -16,7 +16,8 @@ import {
   Layers,
   Zap,
   BookOpen,
-  HelpCircle
+  HelpCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { DateRange } from '../types.ts';
 
@@ -28,6 +29,8 @@ interface LayoutProps {
   onLogout: () => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
+  onBack?: () => void;
+  canGoBack?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -37,7 +40,9 @@ const Layout: React.FC<LayoutProps> = ({
   userName, 
   onLogout,
   dateRange,
-  setDateRange
+  setDateRange,
+  onBack,
+  canGoBack = false
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
@@ -54,7 +59,11 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} transition-all duration-300 bg-slate-900 text-slate-300 flex flex-col h-full border-r border-slate-800 shrink-0`}>
-        <div className="p-8 flex items-center gap-3 border-b border-slate-800">
+        <div 
+          className="p-8 flex items-center gap-3 border-b border-slate-800 cursor-pointer hover:bg-slate-800/50 transition-colors"
+          onClick={() => setActiveTab('dashboard')}
+          title="Return to Home"
+        >
           <ChefHat className="text-indigo-400" size={28} />
           <span className="font-black text-xl text-white tracking-tighter uppercase">FohBoh <span className="text-indigo-400">MGE</span></span>
         </div>
@@ -73,12 +82,24 @@ const Layout: React.FC<LayoutProps> = ({
       </aside>
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-24 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0">
-          <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-2.5 shadow-sm">
-            <Calendar size={18} className="text-indigo-500" />
-            <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              <input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="bg-transparent border-none p-0 cursor-pointer text-slate-900" />
-              <div className="w-px h-6 bg-slate-200" />
-              <input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="bg-transparent border-none p-0 cursor-pointer text-slate-900" />
+          <div className="flex items-center gap-6">
+            {canGoBack && (
+              <button 
+                onClick={onBack}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all group"
+                title="Go Back"
+              >
+                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+              </button>
+            )}
+            <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-2.5 shadow-sm">
+              <Calendar size={18} className="text-indigo-500" />
+              <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} className="bg-transparent border-none p-0 cursor-pointer text-slate-900 outline-none" />
+                <div className="w-px h-6 bg-slate-200" />
+                <input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} className="bg-transparent border-none p-0 cursor-pointer text-slate-900 outline-none" />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-4">
