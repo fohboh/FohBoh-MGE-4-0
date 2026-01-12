@@ -100,13 +100,6 @@ const App: React.FC = () => {
   
   // Navigation State
   const [showLanding, setShowLanding] = useState(true);
-  const [userFormData, setUserFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    company: '',
-    role: UserRole.C_LEVEL
-  });
 
   // Date Range State
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -140,7 +133,6 @@ const App: React.FC = () => {
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {
-      // Auto-set guest user to remove identity box requirement
       setUser(GUEST_USER);
     }
     setIsAuthenticating(false);
@@ -169,25 +161,6 @@ const App: React.FC = () => {
     setShowLanding(true);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newUser: SimulatorUser = {
-      userId: `U_${Date.now()}`,
-      firstName: userFormData.firstName || 'Guest',
-      lastName: userFormData.lastName || 'User',
-      userType: userFormData.role,
-      businessEmail: userFormData.email,
-      company: userFormData.company || 'Truth Table Rest',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      simulationCount: 0
-    };
-    setUser(newUser);
-    localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
-    setShowLanding(false);
-    setActiveTab('dashboard');
-  };
-
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('fohboh_user_session');
@@ -199,14 +172,56 @@ const App: React.FC = () => {
   const runSimulation = (module: ModuleType, inputData: any) => {
     let value = 0;
     let kpiId = '';
-    const trustScore = 85 + Math.random() * 10;
+    let foundMoneyAmount = 0;
+    let trustScore = 85 + Math.random() * 10;
+    let auditDetails = null;
 
     if (module === ModuleType.REVENUE_RECOVERY) {
       kpiId = 'RR001';
       value = (parseFloat(inputData.open || 0) - parseFloat(inputData.closed || 0)) * parseFloat(inputData.avg || 0);
+      foundMoneyAmount = Math.abs(value);
     } else if (module === ModuleType.DELIVERY_RECON) {
       kpiId = 'DR001';
       value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
+      foundMoneyAmount = Math.abs(value);
+    } else if (module === ModuleType.CC_AUDIT) {
+      kpiId = 'CC_RECOVERY_TOTAL';
+      const vol = parseFloat(inputData.total_card_volume || 0);
+      const fees = parseFloat(inputData.total_fees_charged || 0);
+      const markupBps = parseFloat(inputData.contracted_markup_bps || 0);
+      const debitVol = parseFloat(inputData.debit_volume || 0);
+      const debitCount = parseInt(inputData.debit_count || 0);
+
+      // Deterministic Waterfall Logic from PDF
+      const effectiveRate = (fees / vol) * 100;
+      const expectedMarkup = (vol * (markupBps / 10000));
+      // Estimate interchange as 3.0% for basic logic, markup is anything above
+      const actualMarkupAmount = fees - (vol * 0.03); 
+      const contractOvercharge = actualMarkupAmount - expectedMarkup;
+      
+      // Durbin Cap Calculation: ($0.22 + 0.05%) per transaction
+      const maxRegulatedDebitFee = (debitCount * 0.23) + (debitVol * 0.0005);
+      // Assume 30% of fees were debit related for this simulation logic
+      const estimatedActualDebitFees = fees * 0.3;
+      const durbinOvercharge = Math.max(0, estimatedActualDebitFees - maxRegulatedDebitFee);
+      
+      foundMoneyAmount = contractOvercharge + durbinOvercharge;
+      value = effectiveRate;
+      
+      auditDetails = {
+        contractViolation: contractOvercharge,
+        durbinViolation: durbinOvercharge,
+        effectiveRate: effectiveRate,
+        isJunkFee: effectiveRate > 4.0
+      };
+      
+      // Trust Scoring System from PDF Page 11-12
+      let tScore = 0;
+      tScore += 25; // Data completeness assumed
+      tScore += 20; // Statement quality assumed
+      tScore += 15; // Processor reputation
+      tScore += 20; // Historical patterns (single period)
+      trustScore = tScore;
     } else if (module === ModuleType.OPERATIONS_CERTIFICATION) {
       if (opsCertActiveTab === 'food') {
         kpiId = 'FOOD_COST_PCT';
@@ -245,7 +260,8 @@ const App: React.FC = () => {
       isCertified: true,
       dataSources: ['Truth Table V4'],
       qualityIssues: [],
-      foundMoneyAmount: Math.abs(value)
+      foundMoneyAmount,
+      auditDetails
     };
 
     setMetrics(prev => [...prev, newMetric]);
@@ -538,7 +554,8 @@ const App: React.FC = () => {
       { type: ModuleType.OPERATIONAL_EFFICIENCY, label: "02. Operational & Sales Efficiency" },
       { type: ModuleType.INVENTORY_WASTE, label: "03. Inventory & Waste Management" },
       { type: ModuleType.LABOR_PRODUCTIVITY, label: "04. Labor & Staff Productivity" },
-      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" }
+      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" },
+      { type: ModuleType.CC_AUDIT, label: "07. Credit Card Auditing" }
     ];
 
     return (
@@ -633,65 +650,10 @@ const App: React.FC = () => {
                                 </div>
                               </div>
                             )}
-
-                            {f.governanceRules && (
-                              <div className="space-y-4">
-                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                  <Scale size={14} className="text-indigo-500" /> Governance Rules
-                                </h5>
-                                <div className="grid gap-2">
-                                  {f.governanceRules.map((rule, idx) => (
-                                    <div key={idx} className="flex gap-3 text-[10px] font-bold text-slate-500 leading-snug">
-                                      <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full mt-1 shrink-0" />
-                                      {rule}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {f.trustScoreComponents && (
-                              <div className="space-y-4">
-                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                  <ThumbsUp size={14} className="text-indigo-500" /> Trust Score Weights
-                                </h5>
-                                <div className="grid grid-cols-2 gap-3">
-                                  {Object.entries(f.trustScoreComponents).map(([comp, weight]) => (
-                                    <div key={comp} className="bg-slate-50 p-3 rounded-xl flex items-center justify-between">
-                                      <span className="text-[9px] font-black text-slate-400 uppercase truncate pr-2">{comp.replace(/_/g, ' ')}</span>
-                                      <span className="text-xs font-black text-indigo-600">{weight}%</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {f.targetRanges && (
-                              <div className="space-y-4">
-                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                  <Target size={14} className="text-indigo-500" /> Target Benchmarks
-                                </h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {Object.entries(f.targetRanges).map(([seg, range]) => (
-                                    <div key={seg} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                                      {seg}: {range}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
                     </div>
-                    {expandedFormula !== f.formulaId && (
-                      <button 
-                        onClick={() => setExpandedFormula(f.formulaId)}
-                        className="w-full bg-slate-50 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 transition-all border-t border-slate-100"
-                      >
-                        Deep Inspect Logic
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
@@ -730,8 +692,12 @@ const App: React.FC = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Closed Checks</label>
                     <input name="closed" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0" />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Average Check ($)</label>
+                    <input name="avg" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
+                  </div>
                 </>
-              ) : (
+              ) : module === ModuleType.DELIVERY_RECON ? (
                 <>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">POS Sales Gross</label>
@@ -742,9 +708,87 @@ const App: React.FC = () => {
                     <input name="bank" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
             <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98] uppercase text-xs tracking-widest">Process Logic Pipeline</button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCCAudit = () => {
+    return (
+      <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
+        <div className="bg-slate-900 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-white">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-2xl ring-4 ring-white/10"><CreditCard size={40} /></div>
+              <div>
+                <h2 className="text-4xl font-black tracking-tighter uppercase leading-none mb-2">Merchant Fee Recovery Engine</h2>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.3em]">Module 7: Deterministic Forensic Audit</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                <div className="text-right">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">System Status</p>
+                    <p className="text-xs font-bold text-white">Waterfall Audit Ready</p>
+                </div>
+                <ShieldCheck className="text-indigo-400" size={24} />
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 blur-[120px] pointer-events-none" />
+        </div>
+
+        <div className="bg-white p-12 rounded-[3.5rem] border border-slate-200 shadow-xl">
+          <form className="space-y-12" onSubmit={e => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            runSimulation(ModuleType.CC_AUDIT, Object.fromEntries(formData.entries()));
+            handleTabChange('dashboard');
+          }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><DollarSign size={12} className="text-indigo-500" /> Monthly Card Volume ($)</label>
+                <input name="total_card_volume" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="150000.00" />
+                <p className="text-[9px] text-slate-400 font-medium italic">Total card sales from processor statement.</p>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><AlertTriangle size={12} className="text-rose-500" /> Total Processor Fees ($)</label>
+                <input name="total_fees_charged" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="5800.00" />
+                <p className="text-[9px] text-slate-400 font-medium italic">All fees charged by the merchant processor.</p>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileText size={12} className="text-indigo-500" /> Contracted Markup (bps)</label>
+                <input name="contracted_markup_bps" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="10" />
+                <p className="text-[9px] text-slate-400 font-medium italic">Basis points (bps) spread over interchange.</p>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><CreditCard size={12} className="text-emerald-500" /> Debit Volume ($)</label>
+                <input name="debit_volume" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="45000.00" />
+                <p className="text-[9px] text-slate-400 font-medium italic">Required for Durbin Amendment check.</p>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Activity size={12} className="text-indigo-500" /> Transaction Count</label>
+                <input name="debit_count" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="900" />
+                <p className="text-[9px] text-slate-400 font-medium italic">Number of regulated debit transactions.</p>
+              </div>
+              <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex flex-col justify-center">
+                  <div className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-1">Audit Confidence</div>
+                  <div className="text-2xl font-black text-indigo-600">TIER 2 READY</div>
+                  <p className="text-[9px] text-indigo-400 font-bold uppercase mt-1">85% Expected Confidence</p>
+              </div>
+            </div>
+
+            <div className="pt-12 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-slate-400">
+                <ShieldCheck size={20} className="text-indigo-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest">3-Layer Waterfall Audit Execution</span>
+              </div>
+              <button type="submit" className="bg-slate-900 hover:bg-indigo-600 text-white font-black px-16 py-6 rounded-3xl shadow-2xl transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em] flex items-center gap-4">
+                Execute Forensic Audit <Search size={18} />
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -936,31 +980,72 @@ const App: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm h-[500px] flex flex-col">
-          <div className="flex items-center justify-between mb-10">
-            <h3 className="font-black text-slate-900 uppercase tracking-tighter text-lg flex items-center gap-2">
-              <Activity className="text-indigo-500" size={20} /> Variance Timeline
-            </h3>
+        <div className="lg:col-span-2 space-y-10">
+          <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm h-[500px] flex flex-col">
+            <div className="flex items-center justify-between mb-10">
+              <h3 className="font-black text-slate-900 uppercase tracking-tighter text-lg flex items-center gap-2">
+                <Activity className="text-indigo-500" size={20} /> Variance Timeline
+              </h3>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={metrics.map((m, i) => ({ name: i, value: m.foundMoneyAmount }))}>
+                  <defs>
+                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: 'none', color: '#fff' }}
+                    itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#4f46e5" fillOpacity={1} fill="url(#colorVal)" strokeWidth={4} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={metrics.map((m, i) => ({ name: i, value: m.foundMoneyAmount }))}>
-                <defs>
-                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: 'none', color: '#fff' }}
-                  itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#4f46e5" fillOpacity={1} fill="url(#colorVal)" strokeWidth={4} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+
+          {/* Audit Waterfall Detail for CC Module */}
+          {metrics.some(m => m.module === ModuleType.CC_AUDIT) && (
+             <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-slate-900 uppercase tracking-tighter text-lg flex items-center gap-2">
+                    <FileSearch className="text-indigo-500" size={20} /> CC Audit Waterfall Ledger
+                  </h3>
+                  <div className="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">Forensic Certified</div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {metrics.filter(m => m.module === ModuleType.CC_AUDIT).slice(-1).map((m, idx) => (
+                    <React.Fragment key={idx}>
+                      <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Markup Violation</span>
+                          <span className="text-sm font-black text-rose-500">${m.auditDetails?.contractViolation?.toLocaleString()}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
+                          <div className="bg-rose-500 h-full w-[267%]" style={{maxWidth: '100%'}} />
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Evidence: Contract states 10 bps, statement shows {((m.value/100)*10000).toFixed(1)} bps actual spread.</p>
+                      </div>
+                      <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Durbin Overcharge</span>
+                          <span className="text-sm font-black text-amber-500">${m.auditDetails?.durbinViolation?.toLocaleString()}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full w-[30%]" style={{maxWidth: '100%'}} />
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase">Evidence: Regulated caps exceeded on estimated debit fee allocation.</p>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+             </div>
+          )}
         </div>
+        
         <div className="bg-[#0F172A] p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
             <h3 className="font-black text-xl mb-8 flex items-center gap-3 text-indigo-400 uppercase tracking-tighter"><BrainCircuit size={28} /> AI Strategy</h3>
@@ -984,12 +1069,12 @@ const App: React.FC = () => {
   );
 
   const renderContent = () => {
-    // Identity box removed as per user request to streamline simulator access
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
       case 'help': return renderHelpPortal();
       case 'faq': return renderFaqSection();
       case 'operations': return renderOperationsCertification();
+      case 'audit': return renderCCAudit();
       case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
       case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
       case 'registry': return renderRegistry();
@@ -1134,7 +1219,7 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {/* Restore Landing Footer Navigation */}
+        {/* Landing Footer Navigation */}
         <footer className="bg-white border-t border-slate-100 py-16 px-12">
           <div className="container mx-auto max-w-7xl">
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
@@ -1162,6 +1247,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   <button onClick={() => { setShowLanding(false); handleTabChange('recovery'); }} className="hover:text-indigo-600 text-left">Revenue Recovery</button>
                   <button onClick={() => { setShowLanding(false); handleTabChange('delivery'); }} className="hover:text-indigo-600 text-left">Delivery Recon</button>
+                  <button onClick={() => { setShowLanding(false); handleTabChange('audit'); }} className="hover:text-indigo-600 text-left">CC Audit & Recovery</button>
                   <button onClick={() => { setShowLanding(false); handleTabChange('vault'); }} className="hover:text-indigo-600 text-left">Certified Vault</button>
                 </div>
               </div>

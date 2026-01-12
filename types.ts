@@ -27,7 +27,8 @@ export enum ModuleType {
   SERVICE_QUALITY = "service_quality",
   REVENUE_RECOVERY = "revenue_recovery",
   DELIVERY_RECON = "delivery_reconciliation",
-  OPERATIONS_CERTIFICATION = "operations_certification"
+  OPERATIONS_CERTIFICATION = "operations_certification",
+  CC_AUDIT = "cc_audit"
 }
 
 export interface DateRange {
@@ -86,6 +87,7 @@ export interface CertifiedMetric {
   dataSources: string[];
   qualityIssues: string[];
   foundMoneyAmount: number;
+  auditDetails?: any;
 }
 
 export interface VaultStatus {
