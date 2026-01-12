@@ -40,7 +40,8 @@ import {
   X,
   Target,
   Search,
-  CheckCircle
+  CheckCircle,
+  Info
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -63,7 +64,6 @@ const App: React.FC = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [restaurantType, setRestaurantType] = useState<RestaurantType>(RestaurantType.FSR);
   const [formulas, setFormulas] = useState<KPIFormula[]>(STANDARD_FORMULAS);
   const [metrics, setMetrics] = useState<CertifiedMetric[]>([]);
   const [isVaultLocked, setIsVaultLocked] = useState(false);
@@ -119,6 +119,7 @@ const App: React.FC = () => {
       };
       setUser(newUser);
       localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
+      setShowLanding(false);
     } else {
       setAuthError('Invalid credentials. Please fill all fields.');
     }
@@ -218,7 +219,7 @@ const App: React.FC = () => {
 
     setMetrics(prev => [...prev, newMetric]);
     if (user) {
-      const updatedUser = { ...user, simulationCount: user.simulationCount + 1 };
+      const updatedUser = { ...user, simulationCount: (user.simulationCount || 0) + 1 };
       setUser(updatedUser);
       localStorage.setItem('fohboh_user_session', JSON.stringify(updatedUser));
     }
@@ -472,86 +473,260 @@ const App: React.FC = () => {
   );
 
   const renderHelp = () => (
-    <div className="max-w-5xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700">
-      <div className="bg-[#0F172A] p-8 flex justify-between items-center text-white">
+    <div className="max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700 font-sans border border-slate-200">
+      {/* HEADER SECTION (from PDF) */}
+      <div className="bg-[#0F172A] p-6 flex justify-between items-center text-white">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black">F</div>
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl">F</div>
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest opacity-60">MGE Resource Center</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400">MGE Resource Center</div>
             <div className="text-xl font-bold tracking-tight">INTELLIGENCE & FRAMEWORK</div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="bg-blue-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">Handbook</button>
-          <button onClick={() => setActiveTab('dashboard')} className="p-2 hover:bg-white/10 rounded-full"><X size={20} /></button>
+        <div className="flex items-center gap-3">
+          <button className="bg-blue-600 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-colors">Handbook</button>
+          <button className="bg-white/10 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-colors">Architecture Loop</button>
+          <button onClick={() => setActiveTab('dashboard')} className="p-2.5 hover:bg-white/10 rounded-full transition-colors ml-2"><X size={20} /></button>
         </div>
       </div>
 
+      {/* THE KITCHEN VS THE BOARDROOM (from PDF) */}
       <div className="p-16 border-b border-slate-100">
-        <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-tight max-w-3xl">
-          The Kitchen vs. The Boardroom: <br />
+        <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-[1.1] max-w-4xl">
+          The Kitchen vs. The Boardroom:<br />
           <span className="text-[#3B82F6]">Why Your Restaurant AI Needs a Single Source of Truth</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-          <div className="space-y-6">
-            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-4 mb-4">The Danger of Assuming You Are Right</h4>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-16 items-start">
+          <div className="md:col-span-7 space-y-6">
+            <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-600 pl-4 mb-4">THE DANGER OF ASSUMING YOU ARE RIGHT</h4>
             <p className="text-slate-600 leading-relaxed font-medium">
-              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the "Data Trust Gap".
+              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the <span className="text-slate-900 font-bold">"Data Trust Gap"</span>.
+            </p>
+            <p className="text-slate-600 leading-relaxed font-medium">
+              Restaurant groups are often a <span className="text-slate-900 font-bold">"Tower of Babel."</span> Operations might define "Gross Sales" differently than Finance. Marketing measures "Customer Churn" based on loyalty, while managers use reservations.
             </p>
           </div>
-          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-100 flex items-center italic text-lg text-slate-700 font-semibold leading-relaxed">
-            "When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions -- like mispricing a menu or under-calculating a shift -- and scale that chaos across your entire chain."
+          <div className="md:col-span-5 bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 relative shadow-sm">
+            <p className="italic text-lg text-slate-800 font-bold leading-relaxed relative z-10">
+              <span className="text-blue-600 text-3xl block mb-2">"</span>
+              When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions -- like mispricing a menu or under-calculating a shift -- and scale that chaos across your entire chain.
+            </p>
           </div>
+        </div>
+      </div>
+
+      {/* THE SOLUTION BANNER (from PDF) */}
+      <div className="px-16 py-8">
+        <div className="bg-[#0F172A] text-white p-12 rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl relative overflow-hidden group">
+          <div className="max-w-xl relative z-10">
+            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">The Solution</h4>
+            <h3 className="text-3xl font-black mb-8 leading-tight uppercase tracking-tight">What is the Metrics Governance Engine?</h3>
+            <p className="text-slate-300 font-medium leading-relaxed mb-8 text-sm">
+              Think of the MGE as the <span className="text-white font-bold">"Central Bank"</span> for your restaurant group's business logic. It sits between your raw data (POS, Labor, Inventory) and the tools you use to consume it.
+            </p>
+            <div className="flex gap-4">
+              <button className="bg-blue-600 hover:bg-blue-700 px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-colors shadow-lg shadow-blue-900/40">Govern Definitions</button>
+              <button className="bg-white/10 hover:bg-white/20 px-8 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest border border-white/5 transition-colors">Standardize Logic</button>
+            </div>
+          </div>
+          <div className="hidden lg:block max-w-[260px] text-xs font-semibold text-slate-400 border-l border-white/10 pl-12 italic leading-relaxed relative z-10">
+            It ensures that when a CFO or an AI bot asks about "Table Turnover Rate," they are all using the exact same definition.
+          </div>
+        </div>
+      </div>
+
+      {/* DEMYSTIFYING CERTIFIED DATA (from PDF) */}
+      <div className="p-16 grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter">Demystifying "Certified Data" & 0-100 Score</h2>
+          <p className="text-slate-600 font-medium leading-relaxed mb-10">
+            When MGE certifies a metric like <span className="text-blue-600 font-bold">REVPASH</span>, it doesn't just check the math. It validates precisely which transaction tables the raw data originates from, the exact calculation logic, and accountability paths.
+          </p>
+          <div className="space-y-6">
+            <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-4">Governance Score Meaning:</h5>
+            <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="px-3 py-1 bg-[#F43F5E] text-white text-[9px] font-black rounded-lg shrink-0">LOW</div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">A warning label indicating the definition is contested or unclear. <span className="text-slate-900">"Use at your own risk."</span></p>
+            </div>
+            <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="px-3 py-1 bg-[#10B981] text-white text-[9px] font-black rounded-lg shrink-0">100</div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Signifies that the metric is fully standardized, audited, and safe to rely on for automated decisions.</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-center">
+          <div className="w-full max-w-[340px] bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] p-12 rounded-[2.5rem] text-center shadow-2xl text-white relative group">
+            <div className="text-[11px] font-black uppercase tracking-[0.25em] text-white/70 mb-8 italic">"A confidence rating for decision-makers."</div>
+            <div className="text-9xl font-black tracking-tighter mb-4 flex items-center justify-center">0-100</div>
+            <div className="mt-8 pt-8 border-t border-white/10 flex flex-col items-center">
+              <ShieldCheck size={32} className="text-emerald-400 mb-2" />
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Certified Engine V4</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* WHY DOES THIS MATTER (from PDF) */}
+      <div className="p-16 bg-slate-50/50">
+        <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+          <Info size={16} className="text-blue-600" /> Why Does This Matter?
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-12">
+          <p className="text-slate-600 font-medium leading-relaxed">
+            In a tight-margin industry, operating on opinions rather than facts is costly. Without governance, AI might advise you to cut labor hours during a peak time because it's using a <span className="text-rose-600 font-bold">flawed definition of "peak."</span>
+          </p>
+          <div className="bg-amber-50 p-10 rounded-[2.5rem] border border-amber-100 text-center flex flex-col items-center justify-center space-y-4 shadow-sm">
+            <p className="italic text-lg text-amber-950 font-bold leading-relaxed">
+              "This simulator allows you to experience the difference between navigating with a broken compass versus steering with certified, trusted intelligence."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* PIPELINE GRID (from PDF) */}
+      <div className="p-16 pb-24 border-t border-slate-100">
+        <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-12 uppercase">Technical Pipeline Lifecycle</h4>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {pipelineStages.map((s, idx) => (
+            <div key={idx} className="bg-slate-50 p-8 rounded-2xl border border-slate-100 flex flex-col items-start text-left hover:bg-white hover:border-blue-500/50 hover:shadow-xl transition-all duration-300 group">
+              <span className="text-[11px] font-black text-blue-500 uppercase mb-4 tracking-widest">Stage {s.stage}</span>
+              <h5 className="font-bold text-slate-900 mb-3 text-sm">{s.title}</h5>
+              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{s.desc}</p>
+              <div className="mt-auto pt-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><ArrowUpRight size={14} /></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 
-  if (showLanding && !user) return renderLandingPage();
-
-  if (!user) {
+  const renderModuleForm = (module: ModuleType) => {
+    let title = ""; let icon = <Database />;
+    switch (module) {
+      case ModuleType.REVENUE_RECOVERY: title = "Revenue Recovery"; icon = <DollarSign />; break;
+      case ModuleType.DELIVERY_RECON: title = "Delivery Reconciliation"; icon = <Truck />; break;
+      case ModuleType.CC_AUDIT: title = "Credit Card Audit"; icon = <CreditCard />; break;
+      case ModuleType.OPERATING_COSTS: title = "Food Cost Intelligence"; icon = <ChefHat />; break;
+    }
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-500">
-          <div className="bg-indigo-600 p-10 text-white text-center">
-            <ChefHat className="mx-auto mb-4" size={56} />
-            <h1 className="text-2xl font-bold tracking-tight uppercase">Truth Table Restaurant</h1>
-            <p className="text-indigo-100 mt-2 text-xs font-semibold tracking-widest opacity-80">FOHBOH MGE SIMULATOR V4.0</p>
-          </div>
-          <div className="p-8">
-            <form onSubmit={onboardingStep === 1 ? (e) => { e.preventDefault(); setOnboardingStep(2); } : handleLogin} className="space-y-4">
-              {onboardingStep === 1 ? (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Business Email</label>
-                    <input required type="email" value={userFormData.email} onChange={e => setUserFormData({...userFormData, email: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-indigo-500" placeholder="operator@rest.com" />
-                  </div>
-                  <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2 mt-4 transition-all active:scale-95">
-                    Next Step <ArrowRight size={18} />
-                  </button>
-                  <button type="button" onClick={() => setShowLanding(true)} className="w-full text-slate-400 text-xs font-semibold hover:text-slate-600 transition-colors mt-2 uppercase tracking-widest">
-                    Back to News
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operator Password</label>
-                      <input required type="password" value={userFormData.password} onChange={e => setUserFormData({...userFormData, password: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" />
+      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-white p-10 rounded-3xl border border-slate-200 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600" />
+            <div className="mb-10 flex items-center gap-4">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">{icon}</div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+                <p className="text-slate-500 mt-1 text-sm">Direct truth-table entry for specialized simulation vectors.</p>
+              </div>
+            </div>
+            <form className="space-y-6" onSubmit={e => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              runSimulation(module, Object.fromEntries(formData.entries()));
+              setActiveTab('dashboard');
+            }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {module === ModuleType.REVENUE_RECOVERY && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Open Check Count</label>
+                      <input name="open_checks" required type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0" />
                     </div>
-                  </div>
-                  <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-xl transition-all mt-4 active:scale-95">
-                    Authenticate & Launch
-                  </button>
-                </>
-              )}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Closed Check Count</label>
+                      <input name="closed_checks" required type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0" />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Average Check Payout ($)</label>
+                      <input name="average_check" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                  </>
+                )}
+                {module === ModuleType.DELIVERY_RECON && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">POS Sales ($)</label>
+                      <input name="pos_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Sales ($)</label>
+                      <input name="platform_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Fees ($)</label>
+                      <input name="platform_fees" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verified Bank Deposit ($)</label>
+                      <input name="bank_deposit" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                  </>
+                )}
+                {module === ModuleType.CC_AUDIT && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Batch Amount ($)</label>
+                      <input name="amount" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Processor Fee Charged ($)</label>
+                      <input name="processor_fee" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agreed Interchange Rate (%)</label>
+                      <input name="interchange_rate" defaultValue="2.5%" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                  </>
+                )}
+                {module === ModuleType.OPERATING_COSTS && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Beginning Inventory ($)</label>
+                      <input name="beginning_inventory" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Purchases ($)</label>
+                      <input name="purchases" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ending Inventory ($)</label>
+                      <input name="ending_inventory" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Food Sales ($)</label>
+                      <input name="food_sales" required type="number" step="0.01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-semibold focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                    </div>
+                  </>
+                )}
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+                Seal Calculation & Update Dashboard
+              </button>
             </form>
+          </div>
+          <div className="bg-slate-50 p-10 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center space-y-6 h-full">
+            <Upload size={40} className="text-indigo-600" />
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Batch Ledger Ingestion</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto mt-2 font-semibold">Upload multiple period audit points using standard CSV schemas.</p>
+            </div>
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              <label className="cursor-pointer bg-white border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs text-slate-600 shadow-sm transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
+                <FileSpreadsheet size={18} /> {csvUploadLoading ? 'Ingesting...' : 'Select CSV'}
+                <input type="file" accept=".csv" className="hidden" onChange={(e) => handleCSVUpload(e, module)} disabled={csvUploadLoading} />
+              </label>
+              <button onClick={() => downloadTemplate(module)} className="text-indigo-600 text-[10px] font-black uppercase tracking-widest hover:underline flex items-center justify-center gap-1.5 opacity-60">
+                <Download size={12} /> Get Template
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
-  }
+  };
 
   const renderDashboard = () => (
     <div id="printable-content" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -565,7 +740,7 @@ const App: React.FC = () => {
             <Printer size={16} /> Print Report
           </button>
           <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-shadow shadow-md">
-            <Download size={16} /> Download CSV
+            <Download size={16} /> Download CSV Ledger
           </button>
         </div>
       </div>
@@ -578,6 +753,82 @@ const App: React.FC = () => {
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recoverable Capital</div>
               <div className="text-2xl font-bold text-slate-900">${dashboard.performance.totalFoundMoney.toLocaleString()}</div>
             </div>
+          </div>
+          <div className="flex items-center gap-1 text-xs font-bold text-emerald-600">
+            <TrendingUp size={14} /> {dashboard.performance.comparisonDeltas[0].deltaPercent}% vs Last period
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><CheckCircle2 size={24} /></div>
+            <div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certification</div>
+              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.certificationRate}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl"><ShieldCheck size={24} /></div>
+            <div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trust Index</div>
+              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.averageTrustScore}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl"><BrainCircuit size={24} /></div>
+            <div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Readiness</div>
+              <div className="text-2xl font-bold text-slate-900">{dashboard.performance.aiReadinessScore}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm h-[400px]">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-8 uppercase tracking-widest text-xs">
+            <Activity size={16} className="text-indigo-600" /> Variance Timeline
+          </h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={metrics.map((m) => ({ 
+              name: new Date(m.calculationDate).toLocaleDateString(), 
+              value: m.foundMoneyAmount, 
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
+              <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Area type="monotone" dataKey="value" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-slate-900 p-8 rounded-2xl text-white shadow-xl border border-slate-800">
+          <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-indigo-400">
+            <BrainCircuit size={20} /> Executive Insights
+          </h3>
+          <div className="space-y-4">
+            {isGeneratingInsights ? (
+              <div className="flex flex-col gap-3 py-16 text-center animate-pulse">
+                <Activity size={24} className="animate-spin text-indigo-500 mx-auto" />
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Processing...</p>
+              </div>
+            ) : insights.length > 0 ? (
+              insights.map((insight, idx) => (
+                <div key={idx} className="flex gap-4 text-sm p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">0{idx+1}</div>
+                  <p className="text-slate-300 text-xs leading-relaxed font-medium">{insight}</p>
+                </div>
+              ))
+            ) : (
+              <div className="text-slate-500 text-center py-12 italic text-sm">Run simulation for recommendations.</div>
+            )}
           </div>
         </div>
       </div>
@@ -595,7 +846,8 @@ const App: React.FC = () => {
                 <th className="px-6 py-4">Metric ID</th>
                 <th className="px-6 py-4">Module</th>
                 <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Compliance</th>
+                <th className="px-6 py-4">Trust</th>
+                <th className="px-6 py-4 text-center">Compliance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -604,10 +856,13 @@ const App: React.FC = () => {
                   <td className="px-6 py-4 font-mono text-indigo-600 font-bold">{m.metricId}</td>
                   <td className="px-6 py-4 capitalize">{m.module.replace('_', ' ')}</td>
                   <td className="px-6 py-4 font-black">${m.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 font-bold">{m.trustScore}%</td>
                   <td className="px-6 py-4">
-                    <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${m.isCertified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {m.isCertified ? 'CERTIFIED' : 'REVIEW'}
-                    </span>
+                    <div className="flex justify-center">
+                      <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${m.isCertified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                        {m.isCertified ? 'CERTIFIED' : 'REVIEW'}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -622,6 +877,76 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return renderDashboard();
       case 'help': return renderHelp();
+      case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
+      case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
+      case 'audit': return renderModuleForm(ModuleType.CC_AUDIT);
+      case 'registry':
+        return (
+          <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in">
+            <h2 className="text-xl font-bold text-slate-800 mb-8 flex items-center gap-3 uppercase tracking-tighter">
+              <Database size={24} className="text-indigo-600" /> KPI Governance Registry
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {formulas.map(f => (
+                <div key={f.formulaId} className="p-6 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors group">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase">{f.module.replace('_', ' ')}</span>
+                    <span className="text-[10px] font-bold text-slate-400">VER {f.version}</span>
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-sm mb-1">{f.name}</h4>
+                  <p className="text-xs text-slate-500 mb-4 line-clamp-2 leading-relaxed">{f.description}</p>
+                  <code className="block p-3 bg-slate-900 text-indigo-300 rounded-xl text-[10px] font-mono border border-slate-800">{f.expression}</code>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'vault':
+        return (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in">
+             <div className={`p-16 rounded-[3rem] border-2 transition-all flex flex-col items-center text-center space-y-8 ${isVaultLocked ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'} shadow-2xl`}>
+                <div className="p-6 bg-white rounded-[2rem] shadow-sm">
+                  {isVaultLocked ? <Lock size={64} className="text-emerald-600" /> : <Unlock size={64} className="text-amber-600" />}
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
+                  <p className="text-slate-600 mt-4 max-w-md font-medium text-sm leading-relaxed">
+                    {isVaultLocked 
+                      ? "The period vault is cryptographically sealed. Audit trails are now immutable."
+                      : "The period vault is open. Locking ensures audit-grade data certification."}
+                  </p>
+                </div>
+                <button onClick={() => setIsVaultLocked(!isVaultLocked)} className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${isVaultLocked ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white'}`}>
+                  {isVaultLocked ? 'Release Audit Seal' : 'Lock & Seal Period Vault'}
+                </button>
+             </div>
+          </div>
+        );
+      case 'history':
+        return (
+          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 text-center animate-in fade-in shadow-xl">
+            <div className="p-6 bg-slate-50 rounded-full inline-block mb-6">
+              <HistoryIcon size={48} className="text-slate-400" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-widest">System Integrity Log</h2>
+            <div className="mt-12 max-w-2xl mx-auto space-y-3">
+              {metrics.length > 0 ? metrics.map((m) => (
+                <div key={m.metricId} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 text-left shadow-sm">
+                  <div className="flex gap-4 items-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {m.metricId}</div>
+                      <div className="text-sm font-bold text-slate-700">{m.module.replace('_', ' ').toUpperCase()}</div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full">{new Date(m.calculationDate).toLocaleTimeString()}</div>
+                </div>
+              )) : (
+                <div className="py-20 text-slate-300 italic font-medium">No activity recorded.</div>
+              )}
+            </div>
+          </div>
+        );
       default: return renderDashboard();
     }
   };
