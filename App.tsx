@@ -74,6 +74,7 @@ const App: React.FC = () => {
   
   // Navigation State
   const [showLanding, setShowLanding] = useState(true);
+  const [hoveredPipelineStage, setHoveredPipelineStage] = useState<number | null>(null);
 
   // Date Range State
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -343,6 +344,15 @@ const App: React.FC = () => {
 
   if (isAuthenticating) return null;
 
+  // Pipeline stages for the interactive landing page section
+  const pipelineStages = [
+    { stage: '01', title: 'Truth Capture', desc: 'Immutable ingestion of raw transactional data.' },
+    { stage: '02', title: 'Semantic Alignment', desc: 'Normalizing temporal drift and mapping vendor fields.' },
+    { stage: '03', title: 'Detection Engine', desc: 'Running Pattern audits to identify leakage.' },
+    { stage: '04', title: 'Action Gating', desc: 'Trust-based firewall that enables automated workflows.' },
+    { stage: '05', title: 'Certification', desc: 'Generation of audit-grade ledgers for booking.' }
+  ];
+
   // Landing Page Logic
   const renderLandingPage = () => (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-indigo-100">
@@ -456,21 +466,47 @@ const App: React.FC = () => {
 
           {/* Technical Pipeline */}
           <div className="md:col-span-3 bg-white border border-slate-100 rounded-[2.5rem] p-12 shadow-sm flex items-center justify-between group overflow-hidden">
-            <div className="max-w-md">
+            <div className="max-w-md w-full">
               <h3 className="text-2xl font-black mb-4 tracking-tight">Technical Pipeline Lifecycle</h3>
-              <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
-                From Immutable Truth Capture to Audit-Grade Certification. Our 5-stage engine is designed for high-stakes restaurant finance.
-              </p>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors duration-300">
-                    {i}
+              
+              {/* Dynamic Content revealed on hover */}
+              <div className="min-h-[100px] mb-8">
+                {hoveredPipelineStage !== null ? (
+                  <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                    <div className="flex items-center gap-2 mb-2">
+                       <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-widest">Stage {pipelineStages[hoveredPipelineStage].stage}</span>
+                       <span className="font-bold text-slate-800 text-sm">{pipelineStages[hoveredPipelineStage].title}</span>
+                    </div>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                      {pipelineStages[hoveredPipelineStage].desc}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    From Immutable Truth Capture to Audit-Grade Certification. Our 5-stage engine is designed for high-stakes restaurant finance. Hover stages to explore.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                {pipelineStages.map((s, i) => (
+                  <div 
+                    key={i} 
+                    onMouseEnter={() => setHoveredPipelineStage(i)}
+                    onMouseLeave={() => setHoveredPipelineStage(null)}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 cursor-pointer ${
+                      hoveredPipelineStage === i 
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110' 
+                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                    }`}
+                  >
+                    {i + 1}
                   </div>
                 ))}
               </div>
             </div>
-            <div className="hidden lg:block">
-              <Layers size={80} className="text-slate-100 group-hover:text-indigo-50 transition-colors duration-500" />
+            <div className="hidden lg:block shrink-0">
+              <Layers size={80} className={`transition-all duration-700 ${hoveredPipelineStage !== null ? 'text-blue-500 scale-110 rotate-12' : 'text-slate-100 group-hover:text-indigo-50'}`} />
             </div>
           </div>
         </div>
@@ -593,13 +629,7 @@ const App: React.FC = () => {
       <div className="p-16 pb-24">
         <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-12">Technical Pipeline Lifecycle</h4>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {[
-            { stage: '01', title: 'Truth Capture', desc: 'Immutable ingestion of raw transactional data.' },
-            { stage: '02', title: 'Semantic Alignment', desc: 'Normalizing temporal drift and mapping vendor fields.' },
-            { stage: '03', title: 'Detection Engine', desc: 'Running Pattern audits to identify leakage.' },
-            { stage: '04', title: 'Action Gating', desc: 'Trust-based firewall that enables automated workflows.' },
-            { stage: '05', title: 'Certification', desc: 'Generation of audit-grade ledgers for booking.' }
-          ].map((s, idx) => (
+          {pipelineStages.map((s, idx) => (
             <div key={idx} className="bg-slate-50 p-8 rounded-2xl border border-slate-100 flex flex-col items-start text-left hover:bg-white hover:border-blue-500/50 hover:shadow-lg transition-all cursor-default">
               <span className="text-[10px] font-black text-blue-500 uppercase mb-4 tracking-widest">Stage {s.stage}</span>
               <h5 className="font-bold text-slate-900 mb-3">{s.title}</h5>
