@@ -112,9 +112,16 @@ const App: React.FC = () => {
 
   const handleBack = () => {
     if (navigationHistory.length > 0) {
-      const prevTab = navigationHistory[navigationHistory.length - 1];
-      setNavigationHistory(prev => prev.slice(0, -1));
-      setActiveTab(prevTab);
+      const historyCopy = [...navigationHistory];
+      const prevTab = historyCopy.pop();
+      setNavigationHistory(historyCopy);
+      if (prevTab) setActiveTab(prevTab);
+    }
+  };
+
+  const handleGoHome = () => {
+    if (activeTab !== 'dashboard') {
+      handleTabChange('dashboard');
     }
   };
 
@@ -136,7 +143,7 @@ const App: React.FC = () => {
       setUser(newUser);
       localStorage.setItem('fohboh_user_session', JSON.stringify(newUser));
       setShowLanding(false);
-      setNavigationHistory([]); // Reset history on login
+      setNavigationHistory([]); 
       setActiveTab('dashboard');
     } else {
       setAuthError('Invalid credentials. Please fill all fields.');
@@ -493,7 +500,6 @@ const App: React.FC = () => {
 
   const renderHelp = () => (
     <div className="max-w-6xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-700 font-sans border border-slate-200">
-      {/* HEADER SECTION (from PDF) */}
       <div className="bg-[#0F172A] p-6 flex justify-between items-center text-white">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl">F</div>
@@ -509,7 +515,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* THE KITCHEN VS THE BOARDROOM (from PDF) */}
       <div className="p-16 border-b border-slate-100">
         <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-12 leading-[1.1] max-w-4xl">
           The Kitchen vs. The Boardroom:<br />
@@ -534,7 +539,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* THE SOLUTION BANNER (from PDF) */}
       <div className="px-16 py-8">
         <div className="bg-[#0F172A] text-white p-12 rounded-[3rem] flex flex-col md:flex-row items-center justify-between shadow-2xl relative overflow-hidden group">
           <div className="max-w-xl relative z-10">
@@ -554,7 +558,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* DEMYSTIFYING CERTIFIED DATA (from PDF) */}
       <div className="p-16 grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
         <div>
           <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter">Demystifying "Certified Data" & 0-100 Score</h2>
@@ -585,7 +588,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* WHY DOES THIS MATTER (from PDF) */}
       <div className="p-16 bg-slate-50/50">
         <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
           <Info size={16} className="text-blue-600" /> Why Does This Matter?
@@ -602,7 +604,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* PIPELINE GRID (from PDF) */}
       <div className="p-16 pb-24 border-t border-slate-100">
         <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-12 uppercase">Technical Pipeline Lifecycle</h4>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -979,6 +980,7 @@ const App: React.FC = () => {
       dateRange={dateRange} 
       setDateRange={setDateRange}
       onBack={handleBack}
+      onGoHome={handleGoHome}
       canGoBack={navigationHistory.length > 0}
     >
       {renderContent()}
