@@ -51,7 +51,9 @@ import {
   Search as SearchIcon,
   Scale,
   Clock,
-  ThumbsUp
+  ThumbsUp,
+  Wine,
+  BarChart3
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -87,8 +89,7 @@ const App: React.FC = () => {
     lastName: '',
     email: '',
     company: '',
-    role: UserRole.C_LEVEL,
-    password: '' 
+    role: UserRole.C_LEVEL
   });
 
   // Date Range State
@@ -112,6 +113,9 @@ const App: React.FC = () => {
   // Registry State
   const [registrySearch, setRegistrySearch] = useState('');
   const [expandedFormula, setExpandedFormula] = useState<string | null>(null);
+
+  // Ops Cert State
+  const [opsCertActiveTab, setOpsCertActiveTab] = useState<'food' | 'bev' | 'prime'>('food');
 
   // Session Management
   useEffect(() => {
@@ -177,36 +181,49 @@ const App: React.FC = () => {
     let kpiId = '';
     const trustScore = 85 + Math.random() * 10;
 
-    switch (module) {
-      case ModuleType.REVENUE_RECOVERY:
-        kpiId = 'RR001';
-        value = (parseFloat(inputData.open || 0) - parseFloat(inputData.closed || 0)) * parseFloat(inputData.avg || 0);
-        break;
-      case ModuleType.DELIVERY_RECON:
-        kpiId = 'DR001';
-        value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
-        break;
-      case ModuleType.OPERATIONS_CERTIFICATION:
-        if (inputData.V_FOOD_SALES) {
-          kpiId = 'OPS_FOOD_001';
-          const foodSales = parseFloat(inputData.V_FOOD_SALES);
-          const foodBeginning = parseFloat(inputData.V_FOOD_BEGINNING_INVENTORY || 0);
-          const foodPurchases = parseFloat(inputData.V_FOOD_PURCHASES || 0);
-          const foodEnding = parseFloat(inputData.V_FOOD_ENDING_INVENTORY || 0);
-          const foodEmployee = parseFloat(inputData.V_FOOD_EMPLOYEE_MEALS || 0);
-          value = ((foodBeginning + foodPurchases - foodEnding - foodEmployee) / foodSales) * 100;
-        } else if (inputData.V_NET_SALES) {
-          kpiId = 'OPS_PRIME_001';
-          const netSales = parseFloat(inputData.V_NET_SALES);
-          const totalFood = parseFloat(inputData.V_TOTAL_FOOD_COST || 0);
-          const totalBev = parseFloat(inputData.V_TOTAL_BEV_COST || 0);
-          const laborHourly = parseFloat(inputData.V_LABOR_HOURLY_WAGES || 0);
-          const laborSalary = parseFloat(inputData.V_LABOR_SALARY_ALLOCATION || 0);
-          value = ((totalFood + totalBev + laborHourly + laborSalary) / netSales) * 100;
-        }
-        break;
-      default:
-        value = Math.random() * 1000;
+    if (module === ModuleType.REVENUE_RECOVERY) {
+      kpiId = 'RR001';
+      value = (parseFloat(inputData.open || 0) - parseFloat(inputData.closed || 0)) * parseFloat(inputData.avg || 0);
+    } else if (module === ModuleType.DELIVERY_RECON) {
+      kpiId = 'DR001';
+      value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
+    } else if (module === ModuleType.OPERATIONS_CERTIFICATION) {
+      // Logic from PDF documentation
+      if (opsCertActiveTab === 'food') {
+        kpiId = 'OPS_FOOD_001';
+        const beg = parseFloat(inputData.V_FOOD_BEGINNING_INVENTORY || 0);
+        const purch = parseFloat(inputData.V_FOOD_PURCHASES || 0);
+        const transIn = parseFloat(inputData.V_FOOD_TRANSFERS_IN || 0);
+        const transOut = parseFloat(inputData.V_FOOD_TRANSFERS_OUT || 0);
+        const end = parseFloat(inputData.V_FOOD_ENDING_INVENTORY || 0);
+        const emp = parseFloat(inputData.V_FOOD_EMPLOYEE_MEALS || 0);
+        const sales = parseFloat(inputData.V_FOOD_SALES || 1);
+        
+        const foodCost = (beg + purch + transIn - transOut - end - emp);
+        value = (foodCost / sales) * 100;
+      } else if (opsCertActiveTab === 'bev') {
+        kpiId = 'OPS_BEV_001';
+        const beg = parseFloat(inputData.V_BEV_BEGINNING_INVENTORY || 0);
+        const purch = parseFloat(inputData.V_BEV_PURCHASES || 0);
+        const transIn = parseFloat(inputData.V_BEV_TRANSFERS_IN || 0);
+        const transOut = parseFloat(inputData.V_BEV_TRANSFERS_OUT || 0);
+        const end = parseFloat(inputData.V_BEV_ENDING_INVENTORY || 0);
+        const sales = parseFloat(inputData.V_BEV_SALES || 1);
+        
+        const bevCost = (beg + purch + transIn - transOut - end);
+        value = (bevCost / sales) * 100;
+      } else {
+        kpiId = 'OPS_PRIME_001';
+        const food = parseFloat(inputData.V_TOTAL_FOOD_COST || 0);
+        const bev = parseFloat(inputData.V_TOTAL_BEV_COST || 0);
+        const hourly = parseFloat(inputData.V_LABOR_HOURLY_WAGES || 0);
+        const salary = parseFloat(inputData.V_LABOR_SALARY_ALLOCATION || 0);
+        const sales = parseFloat(inputData.V_NET_SALES || 1);
+        
+        value = ((food + bev + hourly + salary) / sales) * 100;
+      }
+    } else {
+      value = Math.random() * 1000;
     }
 
     const newMetric: CertifiedMetric = {
@@ -345,7 +362,6 @@ const App: React.FC = () => {
     );
   };
 
-  // Fix for reference error on line 690: Implement renderHelpPortal
   const renderHelpPortal = () => {
     if (!isHelpAuth) {
       return (
@@ -513,7 +529,8 @@ const App: React.FC = () => {
       { type: ModuleType.OPERATIONAL_EFFICIENCY, label: "02. Operational & Sales Efficiency" },
       { type: ModuleType.INVENTORY_WASTE, label: "03. Inventory & Waste Management" },
       { type: ModuleType.LABOR_PRODUCTIVITY, label: "04. Labor & Staff Productivity" },
-      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" }
+      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" },
+      { type: ModuleType.OPERATIONS_CERTIFICATION, label: "06. Operations Certification CORE" }
     ];
 
     return (
@@ -699,63 +716,153 @@ const App: React.FC = () => {
 
   const renderOperationsCertification = () => {
     return (
-      <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500">
-        <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl relative overflow-hidden">
-          <div className="flex items-center gap-6 mb-12">
-            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl"><Award size={32} /></div>
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">MGE | Operations Certification</h2>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit-Grade COGS & Labor Governance</p>
+      <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
+        <div className="bg-slate-900 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-white">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-2xl ring-4 ring-white/10"><Award size={40} /></div>
+              <div>
+                <h2 className="text-4xl font-black tracking-tighter uppercase leading-none mb-2">MGE | Operations Certification</h2>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.3em]">Deterministic Logic Engine V4.2</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/10">
+              <button 
+                onClick={() => setOpsCertActiveTab('food')}
+                className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${opsCertActiveTab === 'food' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+              >
+                <ChefHat size={14} /> Food Cost
+              </button>
+              <button 
+                onClick={() => setOpsCertActiveTab('bev')}
+                className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${opsCertActiveTab === 'bev' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Wine size={14} /> Bev Cost
+              </button>
+              <button 
+                onClick={() => setOpsCertActiveTab('prime')}
+                className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${opsCertActiveTab === 'prime' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Calculator size={14} /> Prime Cost
+              </button>
             </div>
           </div>
-          
-          <form className="space-y-16" onSubmit={e => {
+          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 blur-[120px] pointer-events-none" />
+        </div>
+
+        <div className="bg-white p-12 rounded-[3.5rem] border border-slate-200 shadow-xl">
+          <form className="space-y-12" onSubmit={e => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             runSimulation(ModuleType.OPERATIONS_CERTIFICATION, Object.fromEntries(formData.entries()));
             handleTabChange('dashboard');
           }}>
-            <div className="space-y-8">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <ChefHat className="text-indigo-500" size={20} />
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Food Cost Semantic Input</h3>
+            {opsCertActiveTab === 'food' && (
+              <div className="space-y-10 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={12} className="text-indigo-500" /> V_FOOD_BEGINNING_INVENTORY</label>
+                    <input name="V_FOOD_BEGINNING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Starting inventory value for period.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Plus size={12} className="text-emerald-500" /> V_FOOD_PURCHASES</label>
+                    <input name="V_FOOD_PURCHASES" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Total food purchases from AP system.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ArrowRight size={12} className="text-blue-500" /> V_FOOD_TRANSFERS_IN</label>
+                    <input name="V_FOOD_TRANSFERS_IN" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Transferred from other locations.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ArrowRight size={12} className="text-rose-500 rotate-180" /> V_FOOD_TRANSFERS_OUT</label>
+                    <input name="V_FOOD_TRANSFERS_OUT" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Transferred to other locations.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={12} className="text-amber-500" /> V_FOOD_ENDING_INVENTORY</label>
+                    <input name="V_FOOD_ENDING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Physical count ending inventory.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calculator size={12} className="text-purple-500" /> V_FOOD_EMPLOYEE_MEALS</label>
+                    <input name="V_FOOD_EMPLOYEE_MEALS" type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-slate-900" placeholder="0.00" />
+                    <p className="text-[9px] text-slate-400 font-medium">Cost of meals provided to staff.</p>
+                  </div>
+                  <div className="space-y-3 lg:col-span-3">
+                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] flex items-center gap-2">V_FOOD_SALES (DENOMINATOR)</label>
+                    <input name="V_FOOD_SALES" required type="number" step="0.01" className="w-full p-6 bg-indigo-50 border border-indigo-100 rounded-3xl focus:ring-4 focus:ring-indigo-500/20 outline-none font-black text-xl text-indigo-900" placeholder="Net Food Sales" />
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Crucial: All percentages are calculated against this certified net value.</p>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_SALES</label>
-                  <input name="V_FOOD_SALES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Net Food Sales" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_PURCHASES</label>
-                  <input name="V_FOOD_PURCHASES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Purchases" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_BEGINNING_INVENTORY</label>
-                  <input name="V_FOOD_BEGINNING_INVENTORY" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Start Count $" />
-                </div>
-              </div>
-            </div>
+            )}
 
-            <div className="space-y-8">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <Calculator className="text-indigo-500" size={20} />
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Labor Cost Semantic Input</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_LABOR_HOURLY_WAGES</label>
-                  <input name="V_LABOR_HOURLY_WAGES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Hourly Gross" />
+            {opsCertActiveTab === 'bev' && (
+              <div className="space-y-10 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_BEV_BEGINNING_INVENTORY</label>
+                    <input name="V_BEV_BEGINNING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_BEV_PURCHASES</label>
+                    <input name="V_BEV_PURCHASES" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_BEV_ENDING_INVENTORY</label>
+                    <input name="V_BEV_ENDING_INVENTORY" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_BEV_SALES</label>
+                    <input name="V_BEV_SALES" required type="number" step="0.01" className="w-full p-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold" placeholder="Net Beverage Sales" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_NET_SALES</label>
-                  <input name="V_NET_SALES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Net Sales" />
-                </div>
               </div>
-            </div>
+            )}
 
-            <div className="pt-8 flex flex-col items-center gap-6">
-              <button type="submit" className="w-full md:w-auto bg-slate-900 hover:bg-indigo-600 text-white font-black px-20 py-6 rounded-2xl shadow-2xl transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em]">
-                Execute Operations Logic
+            {opsCertActiveTab === 'prime' && (
+              <div className="space-y-10 animate-in fade-in duration-300">
+                <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] mb-12 flex flex-col md:flex-row items-center gap-10">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-xl shrink-0"><Calculator size={32} /></div>
+                  <div className="space-y-2">
+                    <h4 className="text-xl font-black text-indigo-900 uppercase tracking-tighter leading-none">Unified Prime Logic</h4>
+                    <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest">Prime Cost = Food + Bev + Hourly + Salary</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_TOTAL_FOOD_COST (OUTPUT)</label>
+                    <input name="V_TOTAL_FOOD_COST" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="Result from Food Module" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_TOTAL_BEV_COST (OUTPUT)</label>
+                    <input name="V_TOTAL_BEV_COST" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="Result from Bev Module" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_LABOR_HOURLY_WAGES</label>
+                    <input name="V_LABOR_HOURLY_WAGES" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">V_LABOR_SALARY_ALLOCATION</label>
+                    <input name="V_LABOR_SALARY_ALLOCATION" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="0.00" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">V_NET_SALES</label>
+                    <input name="V_NET_SALES" required type="number" step="0.01" className="w-full p-5 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold" placeholder="Total Store Net Sales" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-12 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-slate-400">
+                <ShieldCheck size={20} className="text-indigo-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest">MGE Layer 4: Certification Audit Ready</span>
+              </div>
+              <button type="submit" className="bg-slate-900 hover:bg-indigo-600 text-white font-black px-16 py-6 rounded-3xl shadow-2xl transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em] flex items-center gap-4">
+                Execute Logic Engine <Zap size={18} />
               </button>
             </div>
           </form>
@@ -840,7 +947,6 @@ const App: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <input type="text" placeholder="First Name" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, firstName: e.target.value})} required />
             <input type="email" placeholder="Business Email" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, email: e.target.value})} required />
-            <input type="password" placeholder="Access Code" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, password: e.target.value})} required />
             <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl mt-4">Initialize MGE Session</button>
           </form>
         </div>
