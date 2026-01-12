@@ -2,65 +2,267 @@
 import { RestaurantType, ModuleType, KPIFormula } from './types';
 
 export const STANDARD_FORMULAS: KPIFormula[] = [
+  // CATEGORY 1: FINANCIAL PROFITABILITY
   {
-    formulaId: "RR001",
-    name: "Revenue Recovery from Open Checks",
-    module: ModuleType.REVENUE_RECOVERY,
-    expression: "(open_checks - closed_checks) * average_check",
-    description: "Calculates potential lost revenue from POS check discrepancies",
-    variables: ["open_checks", "closed_checks", "average_check"],
+    formulaId: "COGS_TOTAL",
+    name: "Cost of Goods Sold (COGS)",
+    module: ModuleType.FINANCIAL_PROFITABILITY,
+    expression: "Beginning_Inventory + Purchases - Ending_Inventory",
+    description: "Total cost of inventory used during the period.",
+    variables: ["Beginning_Inventory", "Purchases", "Ending_Inventory"],
     restaurantType: RestaurantType.FSR,
-    version: "1.0",
+    version: "3.4.1",
     createdBy: "system",
     createdAt: new Date().toISOString(),
-    isApproved: false
+    isApproved: true,
+    governanceRules: [
+      "Beginning inventory must be from certified period-end count",
+      "Purchases must be from AP/ERP system with matched invoices",
+      "Ending inventory must be physical count, not estimated",
+      "Employee meals must be reclassified from COGS to Labor",
+      "Waste must be tracked separately and excluded"
+    ],
+    trustScoreComponents: {
+      "inventory_counts_complete": 40,
+      "purchase_data_aligned": 30,
+      "employee_meals_reclassified": 20,
+      "waste_properly_tracked": 10
+    }
   },
   {
-    formulaId: "DR001",
-    name: "Third-Party Delivery Variance",
-    module: ModuleType.DELIVERY_RECON,
-    expression: "pos_sales - (platform_sales - platform_fees - refunds - adjustments)",
-    description: "Identifies discrepancies between POS, platform statements, and bank deposits",
-    variables: ["pos_sales", "platform_sales", "platform_fees", "refunds", "adjustments"],
-    restaurantType: RestaurantType.FSR,
-    version: "1.0",
-    createdBy: "system",
-    createdAt: new Date().toISOString(),
-    isApproved: false
-  },
-  {
-    formulaId: "CA001",
-    name: "Credit Card Fee Accuracy",
-    module: ModuleType.CC_AUDIT,
-    expression: "(sum(transaction_amounts) * expected_rate) - actual_fees",
-    description: "Audits credit card processing fees against agreed rates",
-    variables: ["transaction_amounts", "expected_rate", "actual_fees"],
-    restaurantType: RestaurantType.FSR,
-    version: "1.0",
-    createdBy: "system",
-    createdAt: new Date().toISOString(),
-    isApproved: false
-  },
-  {
-    formulaId: "OC001",
+    formulaId: "FOOD_COST_PCT",
     name: "Food Cost Percentage",
-    module: ModuleType.OPERATING_COSTS,
-    expression: "(beginning_inv + purchases - ending_inv) / food_sales * 100",
-    description: "Standard food cost calculation with inventory adjustment",
-    variables: ["beginning_inv", "purchases", "ending_inv", "food_sales"],
+    module: ModuleType.FINANCIAL_PROFITABILITY,
+    expression: "(Food_COGS / Total_Food_Sales) * 100",
+    description: "Percentage of food sales consumed by food inventory costs.",
+    variables: ["Food_COGS", "Total_Food_Sales"],
     restaurantType: RestaurantType.FSR,
-    version: "1.0",
+    version: "3.4.1",
     createdBy: "system",
     createdAt: new Date().toISOString(),
-    isApproved: false
+    isApproved: true,
+    governanceRules: [
+      "Food_COGS must exclude beverage, labor, and overhead",
+      "Total_Food_Sales must exclude beverage, tax, and discounts",
+      "Comp meals must be included in denominator at full price",
+      "Employee meals must use standard cost, not zero"
+    ],
+    targetRanges: { "QSR": "25-32%", "FSR": "28-35%", "Fine_Dining": "30-38%" },
+    validationLogic: ["IF < 15%: Potential theft", "IF > 40%: Waste issue"]
+  },
+  {
+    formulaId: "PRIME_COST_PCT",
+    name: "Prime Cost Percentage",
+    module: ModuleType.FINANCIAL_PROFITABILITY,
+    expression: "((Food_COGS + Labor_Cost_Total) / Total_Sales) * 100",
+    description: "Combined cost of goods and labor relative to total sales.",
+    variables: ["Food_COGS", "Labor_Cost_Total", "Total_Sales"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Labor must include taxes, benefits, meals, and uniform",
+      "Manager salaries must be prorated by % time in operations",
+      "Overtime must be included at actual rate, not base"
+    ],
+    targetRanges: { "All": "< 60% (Optimal)" }
+  },
+  // CATEGORY 2: OPERATIONAL EFFICIENCY
+  {
+    formulaId: "TABLE_TURNOVER_RATE",
+    name: "Table Turnover Rate",
+    module: ModuleType.OPERATIONAL_EFFICIENCY,
+    expression: "Number_of_Guests_Served / (Number_of_Tables * Meals_per_Day)",
+    description: "Speed at which tables are cycled through guests.",
+    variables: ["Number_of_Guests_Served", "Number_of_Tables", "Meals_per_Day"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Calculate separately for lunch and dinner service",
+      "Bar seats must be excluded from table count",
+      "Private dining rooms must be calculated separately"
+    ]
+  },
+  {
+    formulaId: "REVPASH",
+    name: "RevPASH",
+    module: ModuleType.OPERATIONAL_EFFICIENCY,
+    expression: "Total_Revenue / (Number_of_Seats * Hours_Open)",
+    description: "Revenue Per Available Seat Hour.",
+    variables: ["Total_Revenue", "Number_of_Seats", "Hours_Open"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Seat count must be actual, not theoretical",
+      "Hours open must be operational hours, not posted hours"
+    ]
+  },
+  {
+    formulaId: "AVERAGE_CHECK_SIZE",
+    name: "Average Check Size",
+    module: ModuleType.OPERATIONAL_EFFICIENCY,
+    expression: "Total_Sales / Number_of_Checks",
+    description: "The average amount spent per transaction.",
+    variables: ["Total_Sales", "Number_of_Checks"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Calculate separately for dine-in, takeout, delivery",
+      "Exclude comps and voids from check count"
+    ]
+  },
+  // CATEGORY 3: INVENTORY & WASTE
+  {
+    formulaId: "FOOD_WASTE_PCT",
+    name: "Food Waste Percentage",
+    module: ModuleType.INVENTORY_WASTE,
+    expression: "(Cost_of_Waste / Total_Food_COGS) * 100",
+    description: "Percentage of food cost attributed to waste.",
+    variables: ["Cost_of_Waste", "Total_Food_COGS"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Waste must be weighed, not estimated",
+      "Employee meals must be excluded from waste",
+      "Categories: Prep, Spoilage, Plate, Overproduction"
+    ],
+    targetRanges: { "Total_Waste": "< 6% of food cost" }
+  },
+  {
+    formulaId: "INVENTORY_ACCURACY",
+    name: "Inventory Accuracy Rate",
+    module: ModuleType.INVENTORY_WASTE,
+    expression: "(1 - (|Counted - System| / System)) * 100",
+    description: "Precision of physical counts vs. system expectations.",
+    variables: ["Counted", "System"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Physical counts must be blind",
+      "Variance tolerance: $0.10 per line item",
+      "Root cause must be identified for variances > tolerance"
+    ]
+  },
+  {
+    formulaId: "RECIPE_COST_COMPLIANCE",
+    name: "Recipe Cost Compliance",
+    module: ModuleType.INVENTORY_WASTE,
+    expression: "(Actual_Recipe_Cost / Standard_Recipe_Cost) * 100",
+    description: "Audit of actual ingredient prices vs. standard recipe costs.",
+    variables: ["Actual_Recipe_Cost", "Standard_Recipe_Cost"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Standard cost must be updated with each price change",
+      "Actual cost must use actual purchase prices",
+      "Substitutions must be tracked and cost-adjusted"
+    ]
+  },
+  // CATEGORY 4: LABOR & STAFF
+  {
+    formulaId: "SPLH",
+    name: "Sales Per Labor Hour",
+    module: ModuleType.LABOR_PRODUCTIVITY,
+    expression: "Net_Sales / Total_Labor_Hours",
+    description: "Measure of labor efficiency and productivity.",
+    variables: ["Net_Sales", "Total_Labor_Hours"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Net sales = Gross sales - discounts - comps",
+      "Labor hours = productive hours (exclude breaks, training)"
+    ],
+    targetRanges: { "Server": "$45-$65/hr", "Cook": "$35-$50/hr" }
+  },
+  {
+    formulaId: "SCHEDULE_ADHERENCE",
+    name: "Schedule Adherence Rate",
+    module: ModuleType.LABOR_PRODUCTIVITY,
+    expression: "(Scheduled_Hours_Worked / Total_Scheduled_Hours) * 100",
+    description: "Compliance with planned staff schedules.",
+    variables: ["Scheduled_Hours_Worked", "Total_Scheduled_Hours"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Track: Late arrivals, early departures, no-shows",
+      "Calculate by position and individual"
+    ],
+    targetRanges: { "Excellent": "> 95%" }
+  },
+  // CATEGORY 5: SERVICE QUALITY
+  {
+    formulaId: "ORDER_ACCURACY",
+    name: "Order Accuracy Rate",
+    module: ModuleType.SERVICE_QUALITY,
+    expression: "(Accurate_Orders / Total_Orders) * 100",
+    description: "Percentage of orders served exactly as requested.",
+    variables: ["Accurate_Orders", "Total_Orders"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Accurate defined: Correct items, mod, temp, timing",
+      "Errors categorized: Wrong item, mod, temp, late"
+    ],
+    targetRanges: { "Dine_in": "> 98%", "Delivery": "> 97%" }
+  },
+  {
+    formulaId: "SPEED_OF_SERVICE",
+    name: "Speed of Service",
+    module: ModuleType.SERVICE_QUALITY,
+    expression: "Average_Time_Seated_to_Check_Presented",
+    description: "Total guest cycle time in minutes.",
+    variables: ["Average_Time_Seated_to_Check_Presented"],
+    restaurantType: RestaurantType.FSR,
+    version: "3.4.1",
+    createdBy: "system",
+    createdAt: new Date().toISOString(),
+    isApproved: true,
+    governanceRules: [
+      "Service stages: Greet, Order, Food, Check, Payment",
+      "Bottleneck analysis: Longest stage time"
+    ],
+    targetRanges: { "Lunch": "60 min", "Dinner": "90 min" }
   }
 ];
 
 export const CSV_TEMPLATES = {
+  [ModuleType.FINANCIAL_PROFITABILITY]: "Beginning_Inventory,Purchases,Ending_Inventory,Food_Sales,Total_Sales\n15000,45000,12000,145000,200000",
+  [ModuleType.OPERATIONAL_EFFICIENCY]: "Number_of_Guests,Number_of_Tables,Hours_Open,Total_Revenue\n450,40,12,18500",
+  [ModuleType.INVENTORY_WASTE]: "Cost_of_Waste,Total_Food_COGS,Physical_Count,System_Count\n850,22000,12500,12450",
+  [ModuleType.LABOR_PRODUCTIVITY]: "Net_Sales,Total_Labor_Hours,Scheduled_Worked,Total_Scheduled\n12500,180,175,180",
+  [ModuleType.SERVICE_QUALITY]: "Accurate_Orders,Total_Orders,Seated_Time,Check_Time\n440,450,18:05,19:15",
   [ModuleType.REVENUE_RECOVERY]: "date,opened,closed,avg,voids,unauthorized_comps\n2024-01-15,150,140,28.50,5,2",
   [ModuleType.DELIVERY_RECON]: "date,pos_delivery_sales,platform_gross_sales,delivery_partner_fees,platform_fees\n2024-01-15,1250.00,1280.00,262.50,15.00",
-  [ModuleType.CC_AUDIT]: "transaction_id,amount,pos_amount,processor_fee,interchange_rate\nTX-001,85.50,85.50,2.14,2.50%",
-  [ModuleType.OPERATING_COSTS]: "date,net_sales,purchases,begin_inventory,end_inventory,labor_costs\n2024-W02,125000.00,32500.00,18500.00,16500.00,38000.00"
+  [ModuleType.OPERATIONS_CERTIFICATION]: "V_FOOD_SALES,V_FOOD_PURCHASES,V_FOOD_BEGINNING_INVENTORY,V_FOOD_ENDING_INVENTORY,V_LABOR_HOURLY_WAGES\n45000,12000,8500,9200,14500"
 };
 
 export const GLOSSARY_LOGIC = [
@@ -69,16 +271,8 @@ export const GLOSSARY_LOGIC = [
   { id: 'revpash', title: 'RevPASH', category: 'REV / SEAT HOUR', formula: 'Total Rev / (Seats * Hours)', desc: "Identifies 'cold seats' and dead zones. Essential for table-turn yield strategy." },
   { id: 'theo_cogs', title: 'Theo COGS', category: 'THEORETICAL USAGE', formula: 'SUM(Menu_Sales * Recipe_Cost)', desc: 'Perfect world cost. Delta indicates kitchen waste, theft, or portioning issues.' },
   { id: 'pattern_a', title: 'Pattern A', category: 'PHANTOM CHECKS', formula: 'Checks Opened - Checks Settled', desc: "Transaction-level leakage where checks remain 'pending' indefinitely." },
-  { id: 'pattern_e', title: 'Pattern E', category: 'TIME THEFT DRIFT', formula: 'Sales events outside Clock-In', desc: 'Occurs when transactions are processed by staff not officially on the clock.' },
-  { id: 'splh', title: 'SPLH', category: 'SALES / LABOR HR', formula: 'Total Sales / Total Labor Hours', desc: 'Efficiency engine. Low SPLH = overstaffing; high = service risk.' },
   { id: 'prime_cost', title: 'Prime Cost', category: 'MASTER HEALTH', formula: '(Food Cost + Labor) / Sales', desc: 'Industry standard for P&L health. Target is typically < 65%.' },
-  { id: 'canonical_var', title: 'Canonical Var', category: 'STANDARDIZED LOGIC', formula: 'Map(Vendor) -> Unified_Schema', desc: 'Translates fragmented vendor data into a single language for Stage 3 processing.' },
-  { id: 'pour_cost', title: 'Pour Cost', category: 'BEVERAGE COGS', formula: 'Bev COGS / Bev Sales', desc: 'Isolates leakage in the bar area. Target ranges: Liquor (18%), Beer (22%).' },
-  { id: 'seat_turns', title: 'Seat Turns', category: 'INVENTORY VELOCITY', formula: 'Covers / Total Seat Count', desc: 'Manufacturing capacity of dining room. 0.1x lift yields 5-10% revenue.' },
-  { id: 'audit_ledger', title: 'Audit Ledger', category: 'EVIDENCE STREAM', formula: 'Stage 5 Deliverable', desc: 'Immutable, time-stamped record of detected variances for financial booking.' },
-  { id: 'pattern_c', title: 'Pattern C', category: 'SUSPICIOUS VOIDS', formula: 'Void Value > Statistical Baseline', desc: 'Flags deletions that deviate from historical location baselines.' },
-  { id: 'settlement_net', title: 'Settlement Net', category: 'BANK-ANCHORED TRUTH', formula: 'Actual Bank Deposit Value', desc: "The 'Ultimate Truth Anchor'. If bank doesn't match, metric is Untrusted." },
-  { id: 'truth_anchor', title: 'Truth Anchor', category: 'PRIMARY SOURCE', formula: 'Immutable Evidence Source', desc: 'Bank Statement is for Revenue; Physical Count is for Inventory.' }
+  { id: 'settlement_net', title: 'Settlement Net', category: 'BANK-ANCHORED TRUTH', formula: 'Actual Bank Deposit Value', desc: "The 'Ultimate Truth Anchor'. If bank doesn't match, metric is Untrusted." }
 ];
 
 export const PIPELINE_STAGES = [
@@ -110,85 +304,12 @@ export const BLUEPRINT_CARDS = [
     formula: 'Variance = (POS_Sales - Actual_Cash)',
     headers: 'date, pos_delivery_sales, platform_gross_sales, delivery_partner_fees, platform_fees',
     note: 'Terminal Truth node. Certifies if platform revenue actually reaches the bank.'
-  },
-  {
-    id: 'rev_recovery',
-    title: 'REVENUE RECOVERY (PATTERNS A-D)',
-    formula: 'Leakage = (Phantoms + Voids + Policy Drift)',
-    headers: 'date, opened, closed, avg, voids, unauthorized_comps',
-    note: 'Identifies transaction leakage patterns (A-D). Pattern A flags phantoms.'
-  },
-  {
-    id: 'labor_eff',
-    title: 'LABOR EFFICIENCY (PATTERN E)',
-    formula: 'Time Theft = Unscheduled Sales Drift',
-    headers: 'date, net_sales, total_hours, unscheduled_sales, boh_labor, foh_labor',
-    note: 'Pattern E detection. Sales occurring while staff is clocked out.'
-  },
-  {
-    id: 'capacity_revpash',
-    title: 'CAPACITY & REVPASH',
-    formula: 'RevPASH = Total Revenue / (Seats * Hours)',
-    headers: 'date, net_sales, total_seats, hours_open, parties_served',
-    note: 'Asset yield audit. Improving table turns increases revenue without overhead.'
   }
 ];
 
 export const FAQ_DATA = [
   {
     question: "What is the FohBoh MGE?",
-    answer: "The FohBoh MGE is a metrics governance and certification layer built specifically for restaurants and hospitality. It acts as a trusted data layer between your operational systems (like POS, inventory, and payroll) and your intelligence systems (like dashboards, reports, and AI), ensuring that every number you see is accurate, consistent, and trustworthy. Think of it as your restaurant’s 'financial GPS' - it syncs all your data sources, so everyone is looking at the same numbers, calculated the same way, every time."
-  },
-  {
-    question: "How is the MGE different from a dashboard, spreadsheet, or reporting tool?",
-    answer: "Dashboards and spreadsheets display data, they don’t govern it. The MGE certifies your data before it reaches any dashboard, report, or AI system. Unlike manual spreadsheets, the MGE: Guarantees the same formula is used across all locations and systems, Provides a Trust Score for every metric, Maintains a full audit trail of every calculation, Automatically enforces your business rules across your entire tech stack, and Makes data AI-safe and board-ready."
-  },
-  {
-    question: "Can't I just use a spreadsheet to calculate my KPIs?",
-    answer: "Yes, you could. A spreadsheet can calculate numbers. But it cannot: Guarantee that the same formula is used across all locations and systems; Provide a confidence score for every metric; Maintain an auditable trail of how every number was calculated; Automatically enforce your business rules across your entire tech stack; Certify data for safe AI consumption. The MGE turns tribal knowledge into executable, scalable, and auditable infrastructure."
-  },
-  {
-    question: "What kinds of problems does the MGE solve?",
-    answer: "Ends meetings where teams argue over whose numbers are right; Prevents false alarms, like 'missing inventory' that was actually employee meals; Ensures AI and forecasting tools work with accurate, consistent data; Scales your best practices and policies automatically across all locations; Eliminates 'metric drift' where different systems calculate the same KPI differently."
-  },
-  {
-    question: "How does the MGE help with AI and forecasting?",
-    answer: "AI tools are only as good as the data they're given. The MGE certifies a single version of the truth before AI ever sees the data, ensuring predictions are based on reality, not conflicting sources. This prevents AI 'hallucinations' and makes your forecasting tools truly reliable."
-  },
-  {
-    question: "What does the MGE certify?",
-    answer: "The MGE certifies the process, not just the numbers. It ensures that every calculation follows your exact business rules, is consistent across all systems, and is fully transparent and auditable. This includes certifying compliance with policies (e.g., manager approval for comps over $25) and consistency across the organization."
-  },
-  {
-    question: "Does the MGE fix bad data?",
-    answer: "The MGE doesn't correct errors in your source systems, but it will alert you when data is missing, inconsistent, or looks unusual, so you can fix it at the source."
-  },
-  {
-    question: "What is a Trust Score?",
-    answer: "Every metric certified by the MGE comes with a Trust Score (0–100). This score tells you how reliable the number is based on data freshness, completeness, and consistency. 95+ means data is fresh, complete, and consistent; Below 80 flags issues like missing invoices or outdated counts."
-  },
-  {
-    question: "What is a KPI Registry and KPI Vault?",
-    answer: "The KPI Registry is where you can create, test, and customize KPIs before they go live (flexible and collaborative). The KPI Vault is where KPIs are locked and governed; only authorized administrators can modify them, ensuring consistency, auditability, and trust."
-  },
-  {
-    question: "Does the MGE replace my POS, inventory, or accounting software?",
-    answer: "No. The MGE works with your existing systems. It unifies and certifies the data they produce, ensuring everyone is looking at the same trusted numbers."
-  },
-  {
-    question: "Is the MGE only for large restaurant groups?",
-    answer: "No. The MGE is designed for any operator who uses multiple systems, cares about data consistency, and wants to scale with confidence. It's especially valuable for growing brands and franchise groups."
-  },
-  {
-    question: "Is the MGE secure and auditable?",
-    answer: "Yes. Every action in the MGE is logged in an immutable audit trail. You can see who changed a rule, when, and what the impact was."
-  },
-  {
-    question: "How does the MGE prevent 'metric drift'?",
-    answer: "Metric drift happens when different systems calculate the same metric differently. The MGE eliminates this by storing one official version of each formula, tracking every change with version control, and ensuring the same formula is used across all tools."
-  },
-  {
-    question: "How long does it take to implement the MGE?",
-    answer: "Implementation timelines vary, but the MGE is designed for seamless integration. Most users begin with manual entry or custom CSV templates before investing in a full API integration."
+    answer: "The FohBoh MGE is a metrics governance and certification layer built specifically for restaurants and hospitality. It acts as a trusted data layer between your operational systems and your intelligence systems, ensuring that every number you see is accurate, consistent, and trustworthy."
   }
 ];

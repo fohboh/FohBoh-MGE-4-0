@@ -19,7 +19,8 @@ import {
   BookOpen,
   HelpCircle,
   ArrowLeft,
-  MessageCircleQuestion
+  MessageCircleQuestion,
+  Award
 } from 'lucide-react';
 import { DateRange } from '../types.ts';
 
@@ -53,6 +54,7 @@ const Layout: React.FC<LayoutProps> = ({
   const menuItems = [
     { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
     { id: 'registry', label: 'KPI Registry', icon: Database },
+    { id: 'operations', label: 'Ops Certification', icon: Award },
     { id: 'recovery', label: 'Revenue Recovery', icon: BarChart3 },
     { id: 'delivery', label: 'Delivery Recon', icon: Truck },
     { id: 'audit', label: 'CC Audit', icon: CreditCard },

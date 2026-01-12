@@ -48,7 +48,10 @@ import {
   Key,
   MessageCircleQuestion,
   ChevronDown,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Scale,
+  Clock,
+  ThumbsUp
 } from 'lucide-react';
 import Layout from './components/Layout.tsx';
 import { 
@@ -105,6 +108,10 @@ const App: React.FC = () => {
   // FAQ State
   const [faqSearch, setFaqSearch] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  // Registry State
+  const [registrySearch, setRegistrySearch] = useState('');
+  const [expandedFormula, setExpandedFormula] = useState<string | null>(null);
 
   // Session Management
   useEffect(() => {
@@ -178,6 +185,25 @@ const App: React.FC = () => {
       case ModuleType.DELIVERY_RECON:
         kpiId = 'DR001';
         value = parseFloat(inputData.pos || 0) - parseFloat(inputData.bank || 0);
+        break;
+      case ModuleType.OPERATIONS_CERTIFICATION:
+        if (inputData.V_FOOD_SALES) {
+          kpiId = 'OPS_FOOD_001';
+          const foodSales = parseFloat(inputData.V_FOOD_SALES);
+          const foodBeginning = parseFloat(inputData.V_FOOD_BEGINNING_INVENTORY || 0);
+          const foodPurchases = parseFloat(inputData.V_FOOD_PURCHASES || 0);
+          const foodEnding = parseFloat(inputData.V_FOOD_ENDING_INVENTORY || 0);
+          const foodEmployee = parseFloat(inputData.V_FOOD_EMPLOYEE_MEALS || 0);
+          value = ((foodBeginning + foodPurchases - foodEnding - foodEmployee) / foodSales) * 100;
+        } else if (inputData.V_NET_SALES) {
+          kpiId = 'OPS_PRIME_001';
+          const netSales = parseFloat(inputData.V_NET_SALES);
+          const totalFood = parseFloat(inputData.V_TOTAL_FOOD_COST || 0);
+          const totalBev = parseFloat(inputData.V_TOTAL_BEV_COST || 0);
+          const laborHourly = parseFloat(inputData.V_LABOR_HOURLY_WAGES || 0);
+          const laborSalary = parseFloat(inputData.V_LABOR_SALARY_ALLOCATION || 0);
+          value = ((totalFood + totalBev + laborHourly + laborSalary) / netSales) * 100;
+        }
         break;
       default:
         value = Math.random() * 1000;
@@ -286,248 +312,169 @@ const App: React.FC = () => {
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center shadow-lg"><MessageCircleQuestion size={32} /></div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Knowledge Base <span className="text-indigo-600">FAQ</span></h2>
-          <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] max-w-lg leading-relaxed">Everything you need to know about the FohBoh Metrics Governance Engine.</p>
         </div>
 
         <div className="relative max-w-2xl mx-auto">
           <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input 
             type="text" 
-            placeholder="Search questions or logic keywords..."
+            placeholder="Search questions..."
             value={faqSearch}
             onChange={(e) => setFaqSearch(e.target.value)}
-            className="w-full bg-white border border-slate-200 p-6 pl-16 rounded-[2rem] text-slate-900 font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xl shadow-slate-200/50"
+            className="w-full bg-white border border-slate-200 p-6 pl-16 rounded-[2rem] text-slate-900 font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xl"
           />
         </div>
 
         <div className="space-y-4">
-          {filteredFaq.length > 0 ? filteredFaq.map((faq, idx) => (
-            <div key={idx} className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+          {filteredFaq.map((faq, idx) => (
+            <div key={idx} className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all">
               <button 
                 onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
                 className="w-full text-left p-8 flex items-center justify-between group"
               >
-                <span className="font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{faq.question}</span>
-                <div className={`p-2 rounded-full bg-slate-50 transition-transform duration-300 ${expandedFaq === idx ? 'rotate-180 bg-indigo-50 text-indigo-600' : 'text-slate-400'}`}>
-                  <ChevronDown size={20} />
-                </div>
+                <span className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{faq.question}</span>
+                <ChevronDown size={20} className={`text-slate-400 transition-transform ${expandedFaq === idx ? 'rotate-180' : ''}`} />
               </button>
               {expandedFaq === idx && (
-                <div className="px-8 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300">
-                  <div className="w-full h-px bg-slate-50 mb-6" />
-                  <p className="text-slate-500 font-medium leading-relaxed text-sm whitespace-pre-wrap">{faq.answer}</p>
-                </div>
+                <div className="px-8 pb-8 text-slate-500 font-medium leading-relaxed">{faq.answer}</div>
               )}
             </div>
-          )) : (
-            <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
-              <div className="text-slate-300 mb-4 flex justify-center"><SearchIcon size={48} /></div>
-              <p className="text-slate-400 font-black uppercase tracking-widest">No matching questions found.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-indigo-600 p-12 rounded-[3rem] text-center space-y-6 shadow-2xl shadow-indigo-900/20">
-          <h3 className="text-2xl font-black text-white tracking-tight">Still have questions?</h3>
-          <p className="text-indigo-100 font-medium text-sm">Our engineering and logic teams are here to help you achieve 100% data trust.</p>
-          <div className="flex justify-center gap-4 pt-4">
-            <button className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-colors">Contact Support</button>
-            <button className="bg-indigo-700 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-800 transition-colors">Visit Partners</button>
-          </div>
+          ))}
         </div>
       </div>
     );
   };
 
+  // Fix for reference error on line 690: Implement renderHelpPortal
   const renderHelpPortal = () => {
     if (!isHelpAuth) {
       return (
-        <div className="max-w-xl mx-auto py-20 animate-in fade-in zoom-in-95 duration-500">
-          <div className="bg-[#0F172A] p-12 rounded-[2.5rem] shadow-2xl border border-slate-800 text-center">
-            <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center mb-8 shadow-xl shadow-indigo-900/20">
-              <ShieldCheck size={40} className="text-white" />
+        <div className="max-w-md mx-auto bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-500">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-xl">
+              <Lock size={32} />
             </div>
-            <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Internal Admin Portal</h2>
-            <p className="text-slate-400 text-sm font-medium mb-10 leading-relaxed px-12">
-              Unauthorized access is strictly prohibited. Access to MGE Internal Documentation requires admin verification.
-            </p>
-            <form onSubmit={handleHelpLogin} className="space-y-4">
-              <div className="relative group">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
-                <input 
-                  type="password" 
-                  value={helpPasswordInput}
-                  onChange={(e) => setHelpPasswordInput(e.target.value)}
-                  placeholder="Enter Admin Access Key" 
-                  className="w-full bg-slate-900/50 border border-slate-700 p-5 pl-12 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-600"
-                />
-              </div>
-              {helpError && <p className="text-rose-400 text-[10px] font-black uppercase tracking-widest animate-pulse">{helpError}</p>}
-              <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em] mt-4">
-                Verify Credentials
-              </button>
-            </form>
-            <div className="mt-8 flex items-center justify-center gap-6">
-              <button onClick={handleRestorePassword} className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">Forgot Password?</button>
-              <div className="w-1 h-1 bg-slate-700 rounded-full" />
-              <button onClick={() => setShowLanding(true)} className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">Exit Portal</button>
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Gateway</h2>
+            <p className="text-slate-400 text-xs font-semibold mt-2">Restricted Logic Documentation Portal</p>
           </div>
+          <form onSubmit={handleHelpLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Portal Access Key</label>
+              <input 
+                type="password" 
+                value={helpPasswordInput}
+                onChange={(e) => setHelpPasswordInput(e.target.value)}
+                placeholder="••••••••••••" 
+                className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none" 
+                required 
+              />
+            </div>
+            {helpError && <p className="text-rose-500 text-[10px] font-bold uppercase text-center">{helpError}</p>}
+            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl mt-4 uppercase text-xs tracking-widest transition-all">Authenticate Session</button>
+            <button type="button" onClick={handleRestorePassword} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest pt-4 hover:text-indigo-600 transition-colors">Restore Default Access</button>
+          </form>
         </div>
       );
     }
 
     return (
-      <div className="max-w-[1400px] mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden min-h-[800px] flex flex-col animate-in fade-in duration-700">
-        {/* Portal Header */}
-        <div className="bg-[#0F172A] px-12 py-8 flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-6">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-indigo-900/50">F</div>
-            <div>
-              <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Operational & Strategic Logic Core</div>
-              <div className="text-2xl font-black text-white tracking-tight uppercase">MGE <span className="text-slate-500 font-bold">Internal Docs & Logic</span></div>
-            </div>
+      <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Admin <span className="text-indigo-600">Logic Portal</span></h2>
+            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-1">FohBoh MGE Intelligence Governance</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsChangingPass(!isChangingPass)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-xl text-slate-300 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest">
-              <Settings size={14} /> Security
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsChangingPass(!isChangingPass)}
+              className="px-6 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Key size={14} /> Security
             </button>
-            <button onClick={handleBack} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full transition-colors"><X size={20} /></button>
+            <button 
+              onClick={() => setIsHelpAuth(false)}
+              className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center gap-2"
+            >
+              <LogOut size={14} /> Lock Portal
+            </button>
           </div>
         </div>
 
-        {/* Change Password Overlay */}
         {isChangingPass && (
-          <div className="bg-indigo-600 px-12 py-4 flex items-center justify-center gap-6 text-white text-xs font-bold animate-in slide-in-from-top duration-300">
-            <span>Update Admin Key:</span>
-            <input 
-              type="password" 
-              className="bg-indigo-700 border border-indigo-500 px-4 py-1.5 rounded-lg text-white placeholder:text-indigo-400 outline-none focus:ring-2 focus:ring-white/20" 
-              placeholder="New Access Key"
-              value={newPass}
-              onChange={(e) => setNewPass(e.target.value)}
-            />
-            <button onClick={handleChangePassword} className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors">Apply</button>
-            <button onClick={() => setIsChangingPass(false)} className="text-white/60 hover:text-white transition-colors">Cancel</button>
+          <div className="bg-indigo-50 p-8 rounded-[2rem] border border-indigo-100 flex flex-col md:flex-row items-end gap-6 animate-in slide-in-from-top-4 duration-300">
+            <div className="flex-1 space-y-2 w-full">
+              <label className="text-[10px] font-black text-indigo-900 uppercase tracking-widest ml-1">Update Administrative Access Key</label>
+              <input 
+                type="password" 
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="Enter new master key..." 
+                className="w-full p-4 bg-white border border-indigo-200 rounded-xl font-bold focus:ring-4 focus:ring-indigo-500/20 outline-none" 
+              />
+            </div>
+            <button 
+              onClick={handleChangePassword}
+              className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shrink-0"
+            >
+              Commit Change
+            </button>
           </div>
         )}
 
-        {/* Internal Navigation */}
-        <div className="px-12 bg-slate-50 border-b border-slate-200 flex items-center gap-12 overflow-x-auto no-scrollbar">
-          {['playbooks', 'glossary', 'pipeline', 'blueprints'].map((tab) => (
+        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm overflow-x-auto no-scrollbar">
+          {[
+            { id: 'playbooks', label: 'Playbooks', icon: BookOpen },
+            { id: 'glossary', label: 'Logic Glossary', icon: Database },
+            { id: 'pipeline', label: 'Engine Pipeline', icon: Activity }
+          ].map(tab => (
             <button 
-              key={tab}
-              onClick={() => setHelpSubTab(tab)}
-              className={`py-6 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative shrink-0 ${
-                helpSubTab === tab ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+              key={tab.id}
+              onClick={() => setHelpSubTab(tab.id)}
+              className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${
+                helpSubTab === tab.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
               }`}
             >
-              {tab.replace('_', ' & ')}
-              {helpSubTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full" />}
+              <tab.icon size={14} /> {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Content Renderers */}
-        <div className="flex-1 p-16 overflow-y-auto bg-[#FDFDFD]">
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl min-h-[500px]">
           {helpSubTab === 'playbooks' && (
-            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">01. PERSONA PLAYBOOKS</h2>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Product Manager Playbook */}
-                <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-indigo-200 transition-all">
-                  <div className="flex items-center justify-between mb-10">
-                    <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white"><BarChart size={32} /></div>
-                    <ChevronRight className="text-slate-200 group-hover:text-indigo-400 transition-colors" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {BLUEPRINT_CARDS.map(card => (
+                <div key={card.id} className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex flex-col justify-between hover:shadow-lg transition-all group">
+                  <div className="space-y-6">
+                    <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{card.id.replace(/_/g, ' ')}</div>
+                    <h4 className="text-xl font-black text-slate-900 tracking-tighter leading-tight uppercase">{card.title}</h4>
+                    <div className="bg-slate-900 p-4 rounded-xl font-mono text-[10px] text-indigo-300 shadow-inner">
+                      {card.formula}
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{card.note}</p>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">Product Manager</h3>
-                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-8">Protect the Commercial Wedge</div>
-                  <p className="text-slate-500 font-medium leading-relaxed mb-10">
-                    The PM ensures technical architecture translates into financial ROI, moving users from 'Observation' to 'Autonomous Recovery' by standardizing truth across the pipeline.
-                  </p>
-                  <ul className="space-y-6">
-                    {[
-                      { title: 'Stage 5 Roadmap alignment', desc: 'Align engineering with goal of 100% automated actions.' },
-                      { title: 'Defining Truth Anchors', desc: 'Mandate use of immutable nodes like Bank Statements.' },
-                      { title: 'ROI Calculation Certification', desc: 'Verify recovery impact formulas are audited before release.' }
-                    ].map((item, idx) => (
-                      <li key={idx} className="flex gap-5">
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                        <div>
-                          <div className="font-bold text-slate-900 text-sm mb-1">{item.title}</div>
-                          <div className="text-[11px] text-slate-400 font-semibold">{item.desc}</div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {/* Customer Success Playbook */}
-                <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-indigo-200 transition-all">
-                  <div className="flex items-center justify-between mb-10">
-                    <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white"><Shield size={32} /></div>
-                    <ChevronRight className="text-slate-200 group-hover:text-indigo-400 transition-colors" />
+                  <div className="mt-8 pt-6 border-t border-slate-200">
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Canonical Headers</div>
+                    <code className="text-[9px] text-indigo-600 font-bold break-all bg-indigo-50 p-2 rounded-lg block">{card.headers}</code>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">Customer Success</h3>
-                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-8">Bridge the Trust Gap</div>
-                  <p className="text-slate-500 font-medium leading-relaxed mb-10">
-                    CSMs bridge the gap between technical data and human trust, proving 'MGE Truth' is more accurate than client internal assumptions.
-                  </p>
-                  <ul className="space-y-6">
-                    {[
-                      { title: 'Onboarding Lifecycle management', desc: 'Guide users through Bronze to Gold certification within 90 days.' },
-                      { title: 'Objection handling (CFO level)', desc: "Address 'The POS is different' concerns via Stage 2 logic." },
-                      { title: 'ROI Calculation Certification', desc: 'Ensure recovery impacts are quantified for business reviews.' }
-                    ].map((item, idx) => (
-                      <li key={idx} className="flex gap-5">
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                        <div>
-                          <div className="font-bold text-slate-900 text-sm mb-1">{item.title}</div>
-                          <div className="text-[11px] text-slate-400 font-semibold">{item.desc}</div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              </div>
+              ))}
             </div>
           )}
 
           {helpSubTab === 'glossary' && (
-            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">02. CERTIFICATION TIERS & GLOSSARY</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
-                {[
-                  { tier: 'Bronze', label: 'DIRECTIONAL', color: 'bg-amber-100 text-amber-900', desc: 'Stage 1 & 2 Complete. Identifies where money might be leaking.' },
-                  { tier: 'Silver', label: 'OPERATIONAL', color: 'bg-slate-100 text-slate-900', desc: 'Validated Pattern Detection. Safe for store-level performance tweaks.' },
-                  { tier: 'Gold', label: 'AUDIT-GRADE', color: 'bg-indigo-600 text-white shadow-xl shadow-indigo-200', desc: '100% Truth-Anchored. Stage 5 certified for financial booking.' }
-                ].map((t) => (
-                  <div key={t.tier} className={`${t.color} p-10 rounded-3xl`}>
-                    <div className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">{t.label}</div>
-                    <div className="text-3xl font-black mb-4">{t.tier}</div>
-                    <p className="text-xs font-semibold leading-relaxed opacity-80">{t.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
-                {GLOSSARY_LOGIC.map((item) => (
-                  <div key={item.id} className="bg-white border border-slate-100 p-8 rounded-2xl shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all group">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.category}</div>
-                      <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">LOGIC CARD</div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {GLOSSARY_LOGIC.map(item => (
+                  <div key={item.id} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 flex gap-6 group hover:bg-white hover:shadow-xl transition-all">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm shrink-0 font-black text-xs uppercase group-hover:bg-indigo-600 group-hover:text-white transition-all">{item.id.charAt(0)}</div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <h5 className="font-black text-slate-900 uppercase tracking-tight">{item.title}</h5>
+                        <span className="text-[8px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{item.category}</span>
+                      </div>
+                      <div className="font-mono text-[10px] text-indigo-500 font-bold">{item.formula}</div>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">{item.desc}</p>
                     </div>
-                    <h4 className="text-lg font-black text-slate-900 mb-2">{item.title}</h4>
-                    <div className="bg-slate-50 p-3 rounded-xl mb-4">
-                      <code className="text-[10px] font-black text-indigo-600 font-mono">{item.formula}</code>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -535,81 +482,168 @@ const App: React.FC = () => {
           )}
 
           {helpSubTab === 'pipeline' && (
-            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">04. THE 5-STAGE PIPELINE</h2>
-              </div>
-              <div className="space-y-4 max-w-4xl">
-                {PIPELINE_STAGES.map((s, idx) => (
-                  <div key={idx} className="flex items-center gap-8 group">
-                    <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:bg-indigo-600 transition-colors">
-                      <div className="text-center">
-                        <div className="text-[8px] font-black text-white/50 uppercase tracking-widest leading-none">STAGE</div>
-                        <div className="text-2xl font-black text-white leading-none mt-1">{idx + 1}</div>
-                      </div>
-                    </div>
-                    <div className="flex-1 bg-white border border-slate-100 p-8 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all">
-                      <h4 className="text-lg font-black text-slate-900 mb-2 uppercase tracking-tight">{s.title}</h4>
-                      <p className="text-slate-500 text-sm font-medium leading-relaxed">{s.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {helpSubTab === 'blueprints' && (
-            <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-1 bg-indigo-600 h-8 rounded-full" />
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">05. MODULE BLUEPRINTS</h2>
-              </div>
-              
-              <div className="bg-[#0F172A] p-12 rounded-[2.5rem] mb-16 relative overflow-hidden group">
-                <div className="relative z-10 max-w-2xl">
-                  <h3 className="text-3xl font-black text-white mb-6">TECHNICAL TEMPLATES & CSV SCHEMAS</h3>
-                  <p className="text-slate-400 font-medium mb-10 text-sm">Download the exact CSV structures required for Stage 1 Immutable Ingestion. These templates ensure your POS, platform, and bank data streams align perfectly with the MGE logic core.</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    {['FOOD & PRIME', 'BEVERAGE (POUR)', 'DELIVERY AUDIT', 'REVENUE RECOVERY', 'LABOR & SPLH', 'CAPACITY & REVPASH'].map((t) => (
-                      <button key={t} className="flex items-center justify-between bg-white/5 border border-white/10 p-4 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all group/btn">
-                        {t} <Download size={14} className="text-indigo-400 group-hover/btn:text-indigo-600" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-                <div className="absolute top-12 right-12 opacity-5 group-hover:scale-110 transition-transform duration-1000">
-                  <FileSpreadsheet size={300} className="text-white" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {BLUEPRINT_CARDS.map((card) => (
-                  <div key={card.id} className="bg-white p-10 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:border-indigo-400 transition-all">
-                    <div className="flex items-center justify-between mb-8">
-                      <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">{card.title}</h4>
-                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-500 transition-colors"><Info size={16} /></div>
-                    </div>
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">LOGIC FORMULA</div>
-                        <div className="bg-slate-50 p-4 rounded-xl font-mono text-[11px] font-bold text-slate-900">{card.formula}</div>
+            <div className="max-w-4xl mx-auto space-y-12 py-10">
+              <div className="relative">
+                <div className="absolute left-8 top-0 bottom-0 w-px bg-slate-200" />
+                <div className="space-y-16">
+                  {PIPELINE_STAGES.map((step, idx) => (
+                    <div key={idx} className="relative pl-24 group">
+                      <div className="absolute left-0 w-16 h-16 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center font-black text-slate-900 group-hover:border-indigo-600 group-hover:text-indigo-600 transition-all z-10 shadow-sm">
+                        {idx + 1}
                       </div>
                       <div className="space-y-2">
-                        <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">MANDATORY CSV HEADERS</div>
-                        <div className="bg-slate-900 p-4 rounded-xl font-mono text-[10px] font-medium text-indigo-300 leading-relaxed overflow-x-auto whitespace-nowrap no-scrollbar">{card.headers}</div>
-                      </div>
-                      <div className="pt-4 border-t border-slate-50">
-                        <p className="text-[10px] font-bold text-slate-500 leading-relaxed italic">{card.note}</p>
+                        <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">{step.stage}</div>
+                        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight">{step.title}</h4>
+                        <p className="text-slate-500 text-xs font-medium leading-relaxed max-w-lg">{step.desc}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
+      </div>
+    );
+  };
+
+  const renderRegistry = () => {
+    const categories = [
+      { type: ModuleType.FINANCIAL_PROFITABILITY, label: "01. Financial Profitability" },
+      { type: ModuleType.OPERATIONAL_EFFICIENCY, label: "02. Operational & Sales Efficiency" },
+      { type: ModuleType.INVENTORY_WASTE, label: "03. Inventory & Waste Management" },
+      { type: ModuleType.LABOR_PRODUCTIVITY, label: "04. Labor & Staff Productivity" },
+      { type: ModuleType.SERVICE_QUALITY, label: "05. Service Quality & Accuracy" }
+    ];
+
+    return (
+      <div className="space-y-12 animate-in fade-in duration-500 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">Deterministic <span className="text-indigo-400">Logic Registry</span></h2>
+            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em]">FohBoh MGE V3.4.1 Certification Core</p>
+          </div>
+          <div className="relative md:w-96 z-10">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search formulas or rules..." 
+              value={registrySearch}
+              onChange={(e) => setRegistrySearch(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:ring-4 focus:ring-indigo-500/20"
+            />
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] pointer-events-none" />
+        </div>
+
+        {categories.map(cat => {
+          const catFormulas = formulas.filter(f => f.module === cat.type && 
+            (f.name.toLowerCase().includes(registrySearch.toLowerCase()) || f.description.toLowerCase().includes(registrySearch.toLowerCase())));
+          
+          if (catFormulas.length === 0) return null;
+
+          return (
+            <div key={cat.type} className="space-y-8">
+              <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
+                <div className="w-1.5 h-8 bg-indigo-600 rounded-full" />
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{cat.label}</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {catFormulas.map(f => (
+                  <div key={f.formulaId} className={`bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group ${expandedFormula === f.formulaId ? 'ring-2 ring-indigo-500/20' : ''}`}>
+                    <div className="p-10">
+                      <div className="flex items-start justify-between mb-8">
+                        <div>
+                          <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{f.formulaId}</div>
+                          <h4 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">{f.name}</h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           {f.isApproved && <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl" title="Logic Certified"><ShieldCheck size={18} /></div>}
+                           <button 
+                            onClick={() => setExpandedFormula(expandedFormula === f.formulaId ? null : f.formulaId)}
+                            className="bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 p-2 rounded-xl transition-colors"
+                           >
+                            <Info size={18} />
+                           </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DETERMINISTIC FORMULA</label>
+                          <div className="bg-slate-900 p-5 rounded-2xl font-mono text-xs font-bold text-indigo-300 shadow-inner overflow-x-auto whitespace-nowrap no-scrollbar">
+                            {f.expression}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-500 font-medium leading-relaxed">{f.description}</p>
+                        
+                        {expandedFormula === f.formulaId && (
+                          <div className="pt-8 border-t border-slate-50 space-y-8 animate-in slide-in-from-top-4 duration-300">
+                            {f.governanceRules && (
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                  <Scale size={14} className="text-indigo-500" /> Governance Rules
+                                </h5>
+                                <div className="grid gap-2">
+                                  {f.governanceRules.map((rule, idx) => (
+                                    <div key={idx} className="flex gap-3 text-[10px] font-bold text-slate-500 leading-snug">
+                                      <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full mt-1 shrink-0" />
+                                      {rule}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {f.trustScoreComponents && (
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                  <ThumbsUp size={14} className="text-indigo-500" /> Trust Score Weights
+                                </h5>
+                                <div className="grid grid-cols-2 gap-3">
+                                  {Object.entries(f.trustScoreComponents).map(([comp, weight]) => (
+                                    <div key={comp} className="bg-slate-50 p-3 rounded-xl flex items-center justify-between">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase truncate pr-2">{comp.replace(/_/g, ' ')}</span>
+                                      <span className="text-xs font-black text-indigo-600">{weight}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {f.targetRanges && (
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                  <Target size={14} className="text-indigo-500" /> Target Benchmarks
+                                </h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {Object.entries(f.targetRanges).map(([seg, range]) => (
+                                    <div key={seg} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                      {seg}: {range}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {expandedFormula !== f.formulaId && (
+                      <button 
+                        onClick={() => setExpandedFormula(f.formulaId)}
+                        className="w-full bg-slate-50 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 transition-all border-t border-slate-100"
+                      >
+                        Deep Inspect Logic
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -621,7 +655,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-4 mb-10">
             <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white"><Zap size={24} /></div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900 capitalize tracking-tight">{module.replace('_', ' ')} Simulation</h2>
+              <h2 className="text-2xl font-black text-slate-900 capitalize tracking-tight">{module.replace(/_/g, ' ')} Simulation</h2>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Truth Table V4 Engine</p>
             </div>
           </div>
@@ -642,10 +676,6 @@ const App: React.FC = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Closed Checks</label>
                     <input name="closed" required type="number" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0" />
                   </div>
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Average Check Value ($)</label>
-                    <input name="avg" required type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900" placeholder="0.00" />
-                  </div>
                 </>
               ) : (
                 <>
@@ -661,6 +691,73 @@ const App: React.FC = () => {
               )}
             </div>
             <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98] uppercase text-xs tracking-widest">Process Logic Pipeline</button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const renderOperationsCertification = () => {
+    return (
+      <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-500">
+        <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl relative overflow-hidden">
+          <div className="flex items-center gap-6 mb-12">
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl"><Award size={32} /></div>
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">MGE | Operations Certification</h2>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit-Grade COGS & Labor Governance</p>
+            </div>
+          </div>
+          
+          <form className="space-y-16" onSubmit={e => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            runSimulation(ModuleType.OPERATIONS_CERTIFICATION, Object.fromEntries(formData.entries()));
+            handleTabChange('dashboard');
+          }}>
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                <ChefHat className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Food Cost Semantic Input</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_SALES</label>
+                  <input name="V_FOOD_SALES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Net Food Sales" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_PURCHASES</label>
+                  <input name="V_FOOD_PURCHASES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Purchases" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_FOOD_BEGINNING_INVENTORY</label>
+                  <input name="V_FOOD_BEGINNING_INVENTORY" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Start Count $" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                <Calculator className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Labor Cost Semantic Input</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_LABOR_HOURLY_WAGES</label>
+                  <input name="V_LABOR_HOURLY_WAGES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Hourly Gross" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">V_NET_SALES</label>
+                  <input name="V_NET_SALES" required type="number" step="0.01" className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold" placeholder="Total Net Sales" />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8 flex flex-col items-center gap-6">
+              <button type="submit" className="w-full md:w-auto bg-slate-900 hover:bg-indigo-600 text-white font-black px-20 py-6 rounded-2xl shadow-2xl transition-all active:scale-[0.98] uppercase text-xs tracking-[0.2em]">
+                Execute Operations Logic
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -689,10 +786,6 @@ const App: React.FC = () => {
             <h3 className="font-black text-slate-900 uppercase tracking-tighter text-lg flex items-center gap-2">
               <Activity className="text-indigo-500" size={20} /> Variance Timeline
             </h3>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-indigo-500 rounded-full" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recovered Revenue</span>
-            </div>
           </div>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
@@ -730,7 +823,6 @@ const App: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[100px] rounded-full" />
         </div>
       </div>
     </div>
@@ -746,10 +838,10 @@ const App: React.FC = () => {
             <p className="text-slate-400 text-xs font-semibold mt-2">Access the MGE V4 Intelligence Core</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="First Name" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, firstName: e.target.value})} required />
-            <input type="email" placeholder="Business Email" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, email: e.target.value})} required />
-            <input type="password" placeholder="Access Code" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" onChange={e => setUserFormData({...userFormData, password: e.target.value})} required />
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-[0.98] uppercase text-xs tracking-widest mt-4">Initialize MGE Session</button>
+            <input type="text" placeholder="First Name" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, firstName: e.target.value})} required />
+            <input type="email" placeholder="Business Email" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, email: e.target.value})} required />
+            <input type="password" placeholder="Access Code" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold" onChange={e => setUserFormData({...userFormData, password: e.target.value})} required />
+            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-5 rounded-2xl shadow-xl mt-4">Initialize MGE Session</button>
           </form>
         </div>
       );
@@ -759,43 +851,21 @@ const App: React.FC = () => {
       case 'dashboard': return renderDashboard();
       case 'help': return renderHelpPortal();
       case 'faq': return renderFaqSection();
+      case 'operations': return renderOperationsCertification();
       case 'recovery': return renderModuleForm(ModuleType.REVENUE_RECOVERY);
       case 'delivery': return renderModuleForm(ModuleType.DELIVERY_RECON);
-      case 'registry':
-        return (
-          <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-sm animate-in fade-in duration-500">
-            <div className="flex items-center gap-4 mb-12">
-              <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><Database size={24} /></div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">KPI Registry <span className="text-slate-300 font-bold">V4</span></h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {formulas.map(f => (
-                <div key={f.formulaId} className="p-8 border border-slate-100 rounded-[2rem] hover:bg-slate-50 transition-all group hover:shadow-xl hover:shadow-slate-200/50">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="font-black text-slate-900 text-base uppercase tracking-tight">{f.name}</h4>
-                    <div className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm"><CheckCircle size={14} /></div>
-                  </div>
-                  <code className="block p-5 bg-slate-900 text-indigo-300 rounded-2xl text-[11px] font-mono leading-relaxed shadow-inner">{f.expression}</code>
-                  <p className="mt-6 text-xs text-slate-500 font-medium leading-relaxed">{f.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+      case 'registry': return renderRegistry();
       case 'vault':
         return (
           <div className="max-w-4xl mx-auto py-24 rounded-[4rem] border-4 border-dashed border-amber-200 bg-amber-50/50 flex flex-col items-center text-center space-y-10 animate-in zoom-in-95 duration-700">
-            <div className="w-32 h-32 bg-white rounded-[3rem] shadow-2xl flex items-center justify-center border border-amber-100 text-amber-600">
+            <div className="w-32 h-32 bg-white rounded-[3rem] shadow-2xl flex items-center justify-center text-amber-600">
               {isVaultLocked ? <Lock size={64} /> : <Unlock size={64} className="animate-pulse" />}
             </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
-              <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.2em] max-w-sm mx-auto leading-relaxed">Immutable storage for period-certified ledgers and governing KPIs.</p>
-            </div>
+            <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Certified Truth Vault</h2>
             <button 
               onClick={() => setIsVaultLocked(!isVaultLocked)} 
               className={`px-16 py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 ${
-                isVaultLocked ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-slate-900 text-white hover:bg-slate-800'
+                isVaultLocked ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-white'
               }`}
             >
               {isVaultLocked ? 'Unlock Period Vault' : 'Lock & Certify Period'}
@@ -814,10 +884,7 @@ const App: React.FC = () => {
         <nav className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-12 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setShowLanding(true)}>
             <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl group-hover:bg-indigo-600 transition-colors shadow-lg">M</div>
-            <div className="flex flex-col leading-none">
-              <span className="font-black text-sm tracking-tight uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
-              <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">Simulator V4.0</span>
-            </div>
+            <span className="font-black text-sm tracking-tight uppercase">FohBoh <span className="text-indigo-600">MGE</span></span>
           </div>
           <div className="hidden md:flex items-center gap-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
             <button onClick={() => { if(user) { setShowLanding(false); handleTabChange('registry'); } }} className="hover:text-indigo-600 transition-colors flex items-center gap-2"><Layers size={14} /> Logic Core</button>
@@ -842,34 +909,14 @@ const App: React.FC = () => {
               Certify Profit. <br />
               <span className="text-indigo-600">Automate Recovery.</span>
             </h1>
-            <p className="text-slate-500 text-xl max-w-3xl mx-auto leading-relaxed font-medium">
-              The MGE Simulator quantifies operational leakage through deterministic 5-stage governance models, turning fragmented data into audit-grade financial ledgers.
-            </p>
             <div className="flex flex-wrap items-center justify-center gap-6 pt-10">
               <button 
                 onClick={() => { if(user) { setShowLanding(false); setActiveTab('dashboard'); } else { setShowLanding(false); } }}
-                className="bg-slate-900 text-white px-12 py-6 rounded-[1.5rem] font-black text-sm flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-indigo-600 transition-all active:scale-95 group"
+                className="bg-slate-900 text-white px-12 py-6 rounded-[1.5rem] font-black text-sm flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-indigo-600 transition-all group"
               >
                 Start MGE Simulator <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
               </button>
-              <button onClick={() => { setShowLanding(false); handleTabChange('faq'); }} className="bg-white border-2 border-slate-100 px-12 py-6 rounded-[1.5rem] font-black text-sm text-slate-600 hover:bg-slate-50 transition-all shadow-xl shadow-slate-200/20">
-                View Knowledge FAQ
-              </button>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {[
-              { icon: Shield, title: 'Data Integrity', desc: 'Immutable ingestion of POS and Bank streams ensure zero-drift truth.', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-              { icon: Zap, title: 'Rapid Recovery', desc: 'Identify variance patterns A-E in minutes, not monthly close cycles.', color: 'text-indigo-500', bg: 'bg-indigo-50' },
-              { icon: BrainCircuit, title: 'AI Governance', desc: 'Feed LLMs with certified metrics, eliminating hallucinations in strategy.', color: 'text-amber-500', bg: 'bg-amber-50' }
-            ].map((feature, i) => (
-              <div key={i} className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 group cursor-default">
-                <div className={`w-16 h-16 ${feature.bg} ${feature.color} rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform`}><feature.icon size={32} /></div>
-                <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">{feature.title}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
           </div>
         </main>
       </div>

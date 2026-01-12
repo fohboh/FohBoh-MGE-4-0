@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { ExecutiveDashboard } from "../types.ts";
 
 export class GeminiService {
@@ -9,10 +9,18 @@ export class GeminiService {
         model: 'gemini-3-pro-preview',
         contents: `Analyze restaurant performance for period ${dashboard.dateRange.start} to ${dashboard.dateRange.end}. Total Found: $${dashboard.performance.totalFoundMoney}. Provide 3 actionable executive recommendations as a JSON array of strings.`,
         config: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          // Use responseSchema for deterministic JSON array output
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.STRING
+            }
+          }
         }
       });
 
+      // Directly access .text property
       const text = response.text;
       if (text) {
         return JSON.parse(text);

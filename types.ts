@@ -20,10 +20,14 @@ export enum UserRole {
 }
 
 export enum ModuleType {
+  FINANCIAL_PROFITABILITY = "financial_profitability",
+  OPERATIONAL_EFFICIENCY = "operational_efficiency",
+  INVENTORY_WASTE = "inventory_waste",
+  LABOR_PRODUCTIVITY = "labor_productivity",
+  SERVICE_QUALITY = "service_quality",
   REVENUE_RECOVERY = "revenue_recovery",
   DELIVERY_RECON = "delivery_reconciliation",
-  CC_AUDIT = "credit_card_audit",
-  OPERATING_COSTS = "operating_costs"
+  OPERATIONS_CERTIFICATION = "operations_certification"
 }
 
 export interface DateRange {
@@ -57,6 +61,10 @@ export interface KPIFormula {
   createdAt: string;
   isApproved: boolean;
   approvalDate?: string;
+  governanceRules?: string[];
+  trustScoreComponents?: Record<string, number>;
+  targetRanges?: Record<string, string>;
+  validationLogic?: string[];
 }
 
 export interface CertifiedMetric {
