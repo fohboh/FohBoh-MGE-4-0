@@ -195,108 +195,84 @@ export const STANDARD_FORMULAS: KPIFormula[] = [
       what: "Speed of guest cycling.",
       why: "Higher turnover maximizes limited seating during peak hours.",
       how: "Total guests divided by table capacity and day parts.",
-      fix: "Improve bussing speed and kitchen ticket times."
-    }
-  },
-  {
-    formulaId: "REVPASH",
-    name: "RevPASH",
-    module: ModuleType.OPERATIONAL_EFFICIENCY,
-    expression: "Total_Revenue / (Number_of_Seats * Hours_Open)",
-    description: "Revenue Per Available Seat Hour.",
-    variables: ["Total_Revenue", "Number_of_Seats", "Hours_Open"],
-    restaurantType: RestaurantType.FSR,
-    version: "3.4.1",
-    createdBy: "MGE_CORE",
-    createdAt: NOW,
-    isApproved: true,
-    enrichment: {
-      what: "Seat productivity metric.",
-      why: "Accounts for both seat count and time, exposing 'dead' hours.",
-      how: "Sales divided by total available seat-hours.",
-      fix: "Use happy hour or marketing to fill seats in off-peak times."
-    }
-  },
-  {
-    formulaId: "AVERAGE_CHECK_SIZE",
-    name: "Average Check Size",
-    module: ModuleType.OPERATIONAL_EFFICIENCY,
-    expression: "Total_Sales / Number_of_Checks",
-    description: "The average amount spent per guest order.",
-    variables: ["Total_Sales", "Number_of_Checks"],
-    restaurantType: RestaurantType.FSR,
-    version: "3.4.1",
-    createdBy: "MGE_CORE",
-    createdAt: NOW,
-    isApproved: true,
-    enrichment: {
-      what: "Average guest spend.",
-      why: "Indicates server effectiveness and guest value.",
-      how: "Net sales divided by guest check count.",
-      fix: "Train staff in suggestive selling and pairing."
+      fix: "Improve bussing speed and floor management."
     }
   }
 ];
 
-export const CSV_TEMPLATES = {
-  [ModuleType.FINANCIAL_PROFITABILITY]: "Beginning_Inventory,Purchases,Ending_Inventory,Food_Sales,Total_Sales\n15000,45000,12000,145000,200000",
-  [ModuleType.OPERATIONAL_EFFICIENCY]: "Number_of_Guests,Number_of_Tables,Hours_Open,Total_Revenue\n450,40,12,18500",
-  [ModuleType.INVENTORY_WASTE]: "Cost_of_Waste,Total_Food_COGS,Physical_Count,System_Count\n850,22000,12500,12450",
-  [ModuleType.LABOR_PRODUCTIVITY]: "Net_Sales,Total_Labor_Hours,Scheduled_Worked,Total_Scheduled\n12500,180,175,180",
-  [ModuleType.SERVICE_QUALITY]: "Accurate_Orders,Total_Orders,Seated_Time,Check_Time\n440,450,18:05,19:15",
-  [ModuleType.REVENUE_RECOVERY]: "date,opened,closed,avg,voids,unauthorized_comps\n2024-01-15,150,140,28.50,5,2",
-  [ModuleType.DELIVERY_RECON]: "date,pos_delivery_sales,platform_gross_sales,delivery_partner_fees,platform_fees\n2024-01-15,1250.00,1280.00,262.50,15.00",
-  [ModuleType.OPERATIONS_CERTIFICATION]: "V_FOOD_SALES,V_FOOD_PURCHASES,V_FOOD_BEGINNING_INVENTORY,V_FOOD_ENDING_INVENTORY,V_LABOR_HOURLY_WAGES\n45000,12000,8500,9200,14500",
-  [ModuleType.CC_AUDIT]: "total_card_volume,total_fees_charged,debit_volume,debit_count,contracted_markup_bps\n150000,5800,45000,900,10"
-};
-
-export const GLOSSARY_LOGIC = [
-  { id: 'v_cc_markup', title: 'Markup Drift', category: 'CONTRACT COMPLIANCE', formula: 'Actual BPS - Contracted BPS', desc: 'Measures "Rate Creep" where processors inflate margins silently over time.' },
-  { id: 'durbin_cap', title: 'Durbin Regulation Cap', category: 'REGULATORY', formula: '$0.22 + 0.05% + $0.01', desc: 'Federal maximum allowed fees for regulated debit card transactions.' },
-  { id: 'junk_signal', title: 'Junk Fee Signal', category: 'AUDIT LOGIC', formula: 'Effective Rate > 4.0%', desc: 'Deterministic trigger identifying non-standard FSR fee profiles.' },
-  { id: 'v_food', title: 'Food Cost Variable Set', category: 'SEMANTIC CORE', formula: 'MGE_FOOD_MODULE_INPUTS', desc: 'Standardized inputs for COGS logic including transfers and employee meals.' },
-  { id: 'v_bev', title: 'Bev Cost Variable Set', category: 'SEMANTIC CORE', formula: 'MGE_BEV_MODULE_INPUTS', desc: 'Standardized inputs for Beverage cost including spills and promo drinks.' },
-  { id: 'v_prime', title: 'Prime Cost Variable Set', category: 'SEMANTIC CORE', formula: 'MGE_PRIME_MODULE_INPUTS', desc: 'High-level aggregation of Food, Bev, and Labor costs relative to Net Sales.' }
+// Re-added missing CSV templates exported to App.tsx
+export const CSV_TEMPLATES = [
+  { name: 'Food Inventory Export', headers: 'V_FOOD_BEGINNING_INVENTORY,V_FOOD_PURCHASES,V_FOOD_ENDING_INVENTORY,V_FOOD_SALES' },
+  { name: 'Labor Payroll Import', headers: 'V_LABOR_HOURLY_WAGES,V_LABOR_SALARY_ALLOCATION,V_NET_SALES' }
 ];
 
-export const PIPELINE_STAGES = [
-  { stage: 'STAGE 1', title: 'Statement Normalization', desc: 'Raw PDF/CSV → Standardized Transaction Objects with Interchange Code Mapping.' },
-  { stage: 'STAGE 2', title: 'Contract Compliance', desc: 'Rate Matrix Validation and Tier Qualification Auditing against signed terms.' },
-  { stage: 'STAGE 3', title: 'Regulatory Audit', desc: 'Durbin Amendment Compliance and PCI Fee legitimacy verification.' },
-  { stage: 'STAGE 4', title: 'Actionable Recovery', desc: 'Generation of Waterfall Reconciliation Ledgers and Processor demand letters.' }
-];
-
-export const BLUEPRINT_CARDS = [
-  {
-    id: 'cc_audit_engine',
-    title: 'CC AUDIT ENGINE',
-    formula: 'Overcharge = (Charged - Max_Allowed) × Volume',
-    headers: 'total_card_volume, total_fees, debit_volume, contracted_markup',
-    note: 'Deterministic logic for identifying Merchant Fee leakage.'
-  },
-  {
-    id: 'food_prime',
-    title: 'FOOD COST MODULE',
-    formula: 'Cost = (Beg + Purch + TransIn) - (TransOut + End + Emp)',
-    headers: 'V_FOOD_BEGINNING, V_FOOD_PURCHASES, V_FOOD_ENDING, V_FOOD_SALES',
-    note: 'Deterministic logic for certifying Food COGS accuracy.'
-  },
-  {
-    id: 'prime_cert',
-    title: 'PRIME COST MODULE',
-    formula: 'Prime % = (Food + Bev + Labor) / Sales',
-    headers: 'V_TOTAL_FOOD_COST, V_TOTAL_BEV_COST, V_LABOR_HOURLY, V_NET_SALES',
-    note: 'The ultimate health anchor for restaurant P&L certification.'
-  }
-];
-
+// Re-added missing FAQ data exported to App.tsx
 export const FAQ_DATA = [
   {
-    question: "What is Durbin Amendment Compliance?",
-    answer: "The Durbin Amendment (part of the Dodd-Frank Act) caps the interchange fees that large banks (>$10B assets) can charge for debit card transactions. Many processors fail to pass these savings to restaurants, resulting in significant overcharges that the MGE identifies."
+    question: "What is the Truth Table Engine?",
+    answer: "It's our deterministic logic engine that processes raw operational data through certified KPI formulas to find variances and recoverable revenue."
   },
   {
-    question: "What is Rate Creep?",
-    answer: "Rate Creep is the subtle, often unannounced increase in processor markups over months or years. Our Contract Compliance engine detects any deviation from your signed contract terms, even as small as 1 basis point."
+    question: "How is Found Money calculated?",
+    answer: "Found Money is the absolute variance between actual costs/fees and theoretical or contracted benchmarks (e.g., CC markup overages)."
+  },
+  {
+    question: "What does Certification Rate mean?",
+    answer: "It measures the percentage of your metrics that have passed through the forensic audit layer and have been locked into the Truth Vault."
+  }
+];
+
+// Re-added missing Blueprint cards exported to App.tsx
+export const BLUEPRINT_CARDS = [
+  {
+    id: 'FOOD_COST_BLUEPRINT',
+    title: 'Food Cost Certification',
+    formula: '((Beg + Purch - End) / Sales) * 100',
+    note: 'Requires weekly physical counts for high-trust scoring.',
+    headers: 'V_FOOD_BEGINNING_INVENTORY, V_FOOD_PURCHASES, V_FOOD_ENDING_INVENTORY, V_FOOD_SALES'
+  },
+  {
+    id: 'CC_AUDIT_BLUEPRINT',
+    title: 'Merchant Fee Recovery',
+    formula: 'Total_Fees - (Volume * Contract_Bps) - Interchange',
+    note: 'Flags junk fees and non-compliant markup creep.',
+    headers: 'Total_Volume, Total_Fees, Contracted_Markup_Bps, Debit_Volume, Debit_Count'
+  }
+];
+
+// Re-added missing Glossary logic exported to App.tsx
+export const GLOSSARY_LOGIC = [
+  {
+    id: 'DURBIN_CAP',
+    title: 'Durbin Amendment Cap',
+    category: 'RECOVERY',
+    formula: '$0.22 + 0.05% + $0.01',
+    desc: 'The federal limit on debit interchange for regulated banks.'
+  },
+  {
+    id: 'PRIME_COST',
+    title: 'Prime Cost',
+    category: 'EFFICIENCY',
+    formula: 'COGS + Labor',
+    desc: 'The total of all controllable operational costs.'
+  }
+];
+
+// Re-added missing Pipeline stages exported to App.tsx
+export const PIPELINE_STAGES = [
+  {
+    stage: 'DATA_INGESTION',
+    title: 'Raw Data Layer',
+    desc: 'Initial ingestion of POS, AP, and bank statement data.'
+  },
+  {
+    stage: 'LOGIC_MAPPING',
+    title: 'Deterministic Mapping',
+    desc: 'Mapping raw fields to certified MGE variables.'
+  },
+  {
+    stage: 'CERTIFICATION',
+    title: 'Forensic Audit',
+    desc: 'Final validation and locking of results into the Truth Vault.'
   }
 ];
