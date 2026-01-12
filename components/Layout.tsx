@@ -102,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({
             <ShieldCheck size={14} className="text-indigo-500" />
             V4.0 TRUTH TABLE
           </div>
-          <div className="text-[10px] text-slate-600 font-bold">© 2026 FOHBOH.AI INC.</div>
+          <div className="text-[10px] text-slate-600 font-bold">(c) 2026 FOHBOH.AI INC.</div>
         </div>
       </aside>
 

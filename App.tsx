@@ -514,7 +514,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="container mx-auto px-12 py-12 border-t border-slate-100 mt-12 flex flex-col md:flex-row justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        <div>© 2026 FohBoh.ai, Inc. All Rights Reserved. US Patent Pending.</div>
+        <div>(c) 2026 FohBoh.ai, Inc. All Rights Reserved. US Patent Pending.</div>
         <div className="flex gap-10 mt-6 md:mt-0">
           <a href="#" className="hover:text-slate-800 transition-colors">Contact Us</a>
           <a href="#" className="hover:text-slate-800 transition-colors">Terms & Conditions</a>
@@ -553,14 +553,14 @@ const App: React.FC = () => {
           <div className="space-y-6">
             <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-4 mb-4">The Danger of Assuming You Are Right</h4>
             <p className="text-slate-600 leading-relaxed font-medium">
-              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the <strong>"Data Trust Gap"</strong>.
+              In the era of Artificial Intelligence, assuming the answers to your data queries are accurate is dangerous. The biggest barrier to successfully adopting AI isn't the technology; it is the "Data Trust Gap".
             </p>
             <p className="text-slate-600 leading-relaxed font-medium">
-              Restaurant groups are often a <strong>"Tower of Babel"</strong>. Operations might define "Gross Sales" differently than Finance. Marketing measures "Customer Churn" based on loyalty, while managers use reservations.
+              Restaurant groups are often a "Tower of Babel". Operations might define "Gross Sales" differently than Finance. Marketing measures "Customer Churn" based on loyalty, while managers use reservations.
             </p>
           </div>
           <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-100 flex items-center italic text-lg text-slate-700 font-semibold leading-relaxed">
-            "When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions—like mispricing a menu or under-calculating a shift—and scale that chaos across your entire chain."
+            "When you feed conflicting definitions into generative AI models, you don't get intelligence. You accelerate bad decisions -- like mispricing a menu or under-calculating a shift -- and scale that chaos across your entire chain."
           </div>
         </div>
       </div>
@@ -572,7 +572,7 @@ const App: React.FC = () => {
             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6">The Solution</h4>
             <h3 className="text-3xl font-black mb-8 leading-tight uppercase">What is the Metrics Governance Engine?</h3>
             <p className="text-slate-300 font-medium leading-relaxed">
-              Think of the MGE as the <strong>"Central Bank"</strong> for your restaurant group's business logic. It sits between your raw data (POS, Labor, Inventory) and the tools you use to consume it.
+              Think of the MGE as the "Central Bank" for your restaurant group's business logic. It sits between your raw data (POS, Labor, Inventory) and the tools you use to consume it.
             </p>
             <div className="flex gap-4 mt-10">
               <button className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest">Govern Definitions</button>
@@ -590,17 +590,17 @@ const App: React.FC = () => {
         <div>
           <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4 mb-8">Demystifying "Certified Data" & 0-100 Score</h4>
           <p className="text-slate-600 font-medium leading-relaxed mb-8">
-            When MGE certifies a metric like <strong>REVPASH</strong>, it doesn't just check the math. It validates precisely which transaction tables the raw data originates from, the exact calculation logic, and accountability paths.
+            When MGE certifies a metric like REVPASH, it doesn't just check the math. It validates precisely which transaction tables the raw data originates from, the exact calculation logic, and accountability paths.
           </p>
           <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-100 space-y-6">
             <h5 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4">Governance Score Meaning:</h5>
             <div className="flex items-start gap-4">
               <div className="px-2 py-1 bg-rose-500 text-white text-[8px] font-black rounded-lg">LOW</div>
-              <p className="text-[11px] text-slate-600 font-semibold">A warning label indicating the definition is contested or unclear. <strong>"Use at your own risk."</strong></p>
+              <p className="text-[11px] text-slate-600 font-semibold">A warning label indicating the definition is contested or unclear. "Use at your own risk."</p>
             </div>
             <div className="flex items-start gap-4">
               <div className="px-2 py-1 bg-emerald-500 text-white text-[8px] font-black rounded-lg">100</div>
-              <p className="text-[11px] text-slate-600 font-semibold">Signifies that the metric is fully standardized, audited, and safe to rely on for <strong>automated decisions.</strong></p>
+              <p className="text-[11px] text-slate-600 font-semibold">Signifies that the metric is fully standardized, audited, and safe to rely on for automated decisions.</p>
             </div>
           </div>
         </div>
@@ -617,7 +617,7 @@ const App: React.FC = () => {
         <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-l-2 border-slate-900 pl-4 mb-8">Why Does This Matter?</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
           <p className="text-slate-600 font-medium leading-relaxed">
-            In a tight-margin industry, operating on opinions rather than facts is costly. Without governance, AI might advise you to cut labor hours during a peak time because it's using a <strong>flawed definition of "peak."</strong>
+            In a tight-margin industry, operating on opinions rather than facts is costly. Without governance, AI might advise you to cut labor hours during a peak time because it's using a flawed definition of "peak."
           </p>
         </div>
         <div className="bg-orange-50 p-12 rounded-[2rem] border border-orange-100 text-center italic text-xl text-orange-950 font-bold leading-relaxed">
@@ -733,7 +733,7 @@ const App: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-hidden">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Executive Summary</h2>
-          <p className="text-slate-500 text-sm">Audit Period: {dateRange.start} — {dateRange.end}</p>
+          <p className="text-slate-500 text-sm">Audit Period: {dateRange.start} -- {dateRange.end}</p>
         </div>
         <div className="flex gap-2">
           <button 
